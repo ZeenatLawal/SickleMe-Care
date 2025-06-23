@@ -21,10 +21,10 @@ export default function WelcomeScreen() {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={styles.signUpButton}
-          onPress={() => router.push("/signup")}
+          style={styles.registerButton}
+          onPress={() => router.push("/register")}
         >
-          <Text style={styles.signUpButtonText}>Sign Up</Text>
+          <Text style={styles.registerButtonText}>Create Account</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -60,13 +60,13 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 15,
   },
-  signUpButton: {
-    backgroundColor: "#8B4B8C",
+  registerButton: {
+    backgroundColor: "#0D9488",
     paddingVertical: 16,
     borderRadius: 25,
     alignItems: "center",
   },
-  signUpButtonText: {
+  registerButtonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
@@ -74,13 +74,13 @@ const styles = StyleSheet.create({
   loginButton: {
     backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: "#8B4B8C",
+    borderColor: "#0D9488",
     paddingVertical: 16,
     borderRadius: 25,
     alignItems: "center",
   },
   loginButtonText: {
-    color: "#8B4B8C",
+    color: "#0D9488",
     fontSize: 18,
     fontWeight: "bold",
   },

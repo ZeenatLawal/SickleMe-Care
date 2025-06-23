@@ -36,7 +36,7 @@ export default function IndexScreen() {
       </View>
 
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B4B8C" />
+        <ActivityIndicator size="large" color="#0D9488" />
         <Text style={styles.loadingText}>
           {isLoading ? "Checking authentication..." : "Redirecting..."}
         </Text>

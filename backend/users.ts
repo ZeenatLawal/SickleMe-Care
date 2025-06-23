@@ -1,19 +1,23 @@
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  FieldValue,
+  getDoc,
+  setDoc,
+  Timestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 const COLLECTION_NAME = "users";
 
 export interface User {
-  id: string;
+  userId: string;
   email: string;
   name: string;
-  createdAt: Date;
+  createdAt: Timestamp | FieldValue;
 }
 
-export const createUser = async (
-  userId: string,
-  userData: Omit<User, "id">
-) => {
+export const createUser = async (userId: string, userData: User) => {
   const userRef = doc(db, COLLECTION_NAME, userId);
   await setDoc(userRef, userData);
 };
@@ -21,9 +25,7 @@ export const createUser = async (
 export const getUserById = async (userId: string) => {
   const userRef = doc(db, COLLECTION_NAME, userId);
   const userSnap = await getDoc(userRef);
-  return userSnap.exists()
-    ? ({ id: userSnap.id, ...userSnap.data() } as User)
-    : null;
+  return userSnap.exists() ? ({ ...userSnap.data() } as User) : null;
 };
 
 export const updateUser = async (userId: string, updates: Partial<User>) => {
