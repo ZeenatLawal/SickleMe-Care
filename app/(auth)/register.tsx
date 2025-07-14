@@ -1,4 +1,5 @@
 import { registerUser } from "@/backend/auth";
+import { Colors } from "@/constants/Colors";
 import { validatePassword } from "@/utils/validatePassword";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -79,7 +80,7 @@ const Register = () => {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color="#0D9488" />
+            <Ionicons name="arrow-back" size={24} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -89,7 +90,10 @@ const Register = () => {
         >
           <View style={styles.content}>
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>Create your account</Text>
+              <Text style={styles.title}>Create Your Account</Text>
+              <Text style={styles.subtitle}>
+                Join the SickleMe Care+ community
+              </Text>
             </View>
 
             {/* Form */}
@@ -98,13 +102,13 @@ const Register = () => {
                 <Ionicons
                   name="person-outline"
                   size={20}
-                  color="#666"
+                  color={Colors.gray500}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Full Name"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={Colors.gray400}
                   value={fullName}
                   onChangeText={setFullName}
                 />
@@ -114,13 +118,13 @@ const Register = () => {
                 <Ionicons
                   name="mail-outline"
                   size={20}
-                  color="#666"
+                  color={Colors.gray500}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Email address"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={Colors.gray400}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -133,13 +137,13 @@ const Register = () => {
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
-                  color="#666"
+                  color={Colors.gray500}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={Colors.gray400}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -151,7 +155,7 @@ const Register = () => {
                   <Ionicons
                     name={showPassword ? "eye-outline" : "eye-off-outline"}
                     size={20}
-                    color="#666"
+                    color={Colors.gray500}
                   />
                 </TouchableOpacity>
               </View>
@@ -160,13 +164,13 @@ const Register = () => {
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
-                  color="#666"
+                  color={Colors.gray500}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm Password"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={Colors.gray400}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
@@ -180,7 +184,7 @@ const Register = () => {
                       showConfirmPassword ? "eye-outline" : "eye-off-outline"
                     }
                     size={20}
-                    color="#666"
+                    color={Colors.gray500}
                   />
                 </TouchableOpacity>
               </View>
@@ -219,7 +223,7 @@ export default Register;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: Colors.white,
   },
   header: {
     paddingTop: 10,
@@ -246,8 +250,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#0D9488",
-    marginBottom: 10,
+    color: Colors.primary,
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.gray500,
+    textAlign: "center",
+    lineHeight: 22,
   },
   form: {
     marginBottom: 30,
@@ -255,46 +265,50 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 16,
-    marginBottom: 15,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: Colors.text,
   },
   eyeIcon: {
-    padding: 5,
+    padding: 6,
   },
   registerButton: {
-    backgroundColor: "#0D9488",
-    paddingVertical: 16,
+    backgroundColor: Colors.primary,
+    paddingVertical: 18,
     borderRadius: 25,
     alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#0D9488",
+    marginBottom: 24,
+    shadowColor: Colors.primary,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: Colors.gray400,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   registerButtonText: {
-    color: "white",
+    color: Colors.white,
     fontSize: 18,
     fontWeight: "bold",
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   loginContainer: {
     flexDirection: "row",
@@ -302,11 +316,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loginText: {
-    color: "#666",
+    color: Colors.gray500,
     fontSize: 16,
   },
   loginLink: {
-    color: "#0D9488",
+    color: Colors.primary,
     fontSize: 16,
     fontWeight: "bold",
   },
