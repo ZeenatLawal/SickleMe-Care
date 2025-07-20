@@ -1,19 +1,16 @@
 import { registerUser } from "@/backend/auth";
+import { Button, FormInput, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { validatePassword } from "@/utils/validatePassword";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -70,7 +67,7 @@ const Register = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -84,137 +81,71 @@ const Register = () => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>Create Your Account</Text>
-              <Text style={styles.subtitle}>
-                Join the SickleMe Care+ community
-              </Text>
-            </View>
-
-            {/* Form */}
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="person-outline"
-                  size={20}
-                  color={Colors.gray500}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full Name"
-                  placeholderTextColor={Colors.gray400}
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="mail-outline"
-                  size={20}
-                  color={Colors.gray500}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email address"
-                  placeholderTextColor={Colors.gray400}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color={Colors.gray500}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor={Colors.gray400}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color={Colors.gray500}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color={Colors.gray500}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm Password"
-                  placeholderTextColor={Colors.gray400}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <Ionicons
-                    name={
-                      showConfirmPassword ? "eye-outline" : "eye-off-outline"
-                    }
-                    size={20}
-                    color={Colors.gray500}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.registerButton,
-                isLoading && styles.buttonDisabled,
-              ]}
-              onPress={createAccount}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.registerButtonText}>Create Account</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push("/login")}>
-                <Text style={styles.loginLink}>Login</Text>
-              </TouchableOpacity>
-            </View>
+        <View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Create Your Account</Text>
+            <Text style={styles.subtitle}>
+              Join the SickleMe Care+ community
+            </Text>
           </View>
-        </ScrollView>
+
+          {/* Form */}
+          <View style={styles.form}>
+            <FormInput
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Full Name"
+              leftIcon="person"
+            />
+
+            <FormInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email address"
+              keyboardType="email-address"
+              leftIcon="email"
+            />
+
+            <FormInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              secureTextEntry={!showPassword}
+              leftIcon="lock"
+              rightIcon={showPassword ? "visibility" : "visibility-off"}
+              onRightIconPress={() => setShowPassword(!showPassword)}
+            />
+
+            <FormInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm Password"
+              secureTextEntry={!showConfirmPassword}
+              leftIcon="lock"
+              rightIcon={showConfirmPassword ? "visibility" : "visibility-off"}
+              onRightIconPress={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+            />
+          </View>
+
+          <Button
+            title="Create Account"
+            onPress={createAccount}
+            variant="primary"
+            loading={isLoading}
+            style={styles.registerButton}
+          />
+
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/login")}>
+              <Text style={styles.loginLink}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
@@ -223,11 +154,9 @@ export default Register;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   header: {
     paddingTop: 10,
-    paddingHorizontal: 20,
     paddingBottom: 10,
   },
   backButton: {
@@ -238,10 +167,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  content: {
-    paddingHorizontal: 30,
-    paddingBottom: 30,
   },
   titleContainer: {
     alignItems: "center",
