@@ -48,7 +48,7 @@ export const registerUser = async (
   email: string,
   password: string,
   name: string
-): Promise<User> => {
+) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(
       auth,

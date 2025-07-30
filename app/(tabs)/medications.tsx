@@ -1,89 +1,143 @@
-import { Button, CardWithTitle, ScreenWrapper } from "@/components/shared";
-import { Colors } from "@/constants/Colors";
-import { MaterialIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
 import {
+  deleteMedication,
+  getMedicationIntakes,
+  getUserMedications,
+  recordMedicationIntake,
+} from "@/backend";
+import {
+  AddMedicationModal,
+  BaseCard,
+  CardWithTitle,
+  ScreenWrapper,
+} from "@/components/shared";
+import { Colors } from "@/constants/Colors";
+import { Medication } from "@/types";
+import { useAuth } from "@/utils/context/AuthProvider";
+import { MaterialIcons } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
   Alert,
-  Modal,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-interface Medication {
-  id: string;
-  name: string;
-  dosage: string;
-  frequency: string;
-  time: string;
+type UIMedication = Partial<Medication> & {
   taken: boolean;
-}
+  dosesToday: number;
+  requiredDoses: number;
+};
+
+const getRequiredDosesPerDay = (frequency: string): number => {
+  switch (frequency) {
+    case "twice-daily":
+      return 2;
+    case "three-times-daily":
+      return 3;
+    case "daily":
+    case "weekly":
+    case "as-needed":
+    default:
+      return 1;
+  }
+};
 
 export default function MedicationsScreen() {
-  const [medications, setMedications] = useState<Medication[]>([
-    {
-      id: "1",
-      name: "Hydroxyurea",
-      dosage: "500mg",
-      frequency: "Daily",
-      time: "08:00",
-      taken: false,
-    },
-    {
-      id: "2",
-      name: "Folic Acid",
-      dosage: "5mg",
-      frequency: "Daily",
-      time: "08:00",
-      taken: true,
-    },
-    {
-      id: "3",
-      name: "Pain Relief",
-      dosage: "400mg",
-      frequency: "As needed",
-      time: "12:00",
-      taken: false,
-    },
-  ]);
-
+  const { userProfile } = useAuth();
+  const [medications, setMedications] = useState<UIMedication[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [newMedication, setNewMedication] = useState({
-    name: "",
-    dosage: "",
-    frequency: "",
-    time: "",
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const toggleMedication = (id: string) => {
-    setMedications((prev) =>
-      prev.map((med) => (med.id === id ? { ...med, taken: !med.taken } : med))
-    );
-  };
+  const loadMedications = useCallback(async () => {
+    if (!userProfile?.userId) return;
 
-  const addMedication = () => {
-    if (!newMedication.name || !newMedication.dosage) {
-      Alert.alert("Error", "Please fill in medication name and dosage");
-      return;
+    try {
+      setIsLoading(true);
+      const userMeds = await getUserMedications(userProfile.userId);
+
+      const today = new Date().toISOString().split("T")[0];
+      const todayIntakes = await getMedicationIntakes(
+        userProfile.userId,
+        today
+      );
+
+      const dosesCountMap = new Map<string, number>();
+      todayIntakes.forEach((intake) => {
+        const currentCount = dosesCountMap.get(intake.medicationId) || 0;
+        dosesCountMap.set(intake.medicationId, currentCount + 1);
+      });
+
+      const transformMeds = userMeds.map((med) => {
+        const requiredDoses = getRequiredDosesPerDay(med.frequency || "daily");
+        const dosesToday = dosesCountMap.get(med.medicationId || "") || 0;
+
+        return {
+          ...med,
+          taken: dosesToday >= requiredDoses,
+          dosesToday,
+          requiredDoses,
+        };
+      });
+
+      setMedications(transformMeds);
+    } catch (error) {
+      console.error("Error loading medications:", error);
+      Alert.alert("Error", "Failed to load medications");
+    } finally {
+      setIsLoading(false);
     }
+  }, [userProfile?.userId]);
 
-    const medication: Medication = {
-      id: Date.now().toString(),
-      name: newMedication.name,
-      dosage: newMedication.dosage,
-      frequency: newMedication.frequency || "Daily",
-      time: newMedication.time || "08:00",
-      taken: false,
-    };
+  useEffect(() => {
+    loadMedications();
+  }, [loadMedications]);
 
-    setMedications((prev) => [...prev, medication]);
-    setNewMedication({ name: "", dosage: "", frequency: "", time: "" });
-    setModalVisible(false);
+  const toggleMedication = async (id?: string) => {
+    if (!id || !userProfile?.userId) return;
+
+    const medication = medications.find((med) => med.medicationId === id);
+    if (!medication) return;
+
+    try {
+      if (medication.dosesToday < medication.requiredDoses) {
+        await recordMedicationIntake(userProfile.userId, id);
+
+        setMedications((prev) =>
+          prev.map((med) => {
+            if (med.medicationId === id) {
+              const newDosesToday = med.dosesToday + 1;
+              return {
+                ...med,
+                dosesToday: newDosesToday,
+                taken: newDosesToday >= med.requiredDoses,
+              };
+            }
+            return med;
+          })
+        );
+
+        const newDosesToday = medication.dosesToday + 1;
+        if (newDosesToday >= medication.requiredDoses) {
+          Alert.alert("Success", "All daily doses completed!");
+        } else {
+          Alert.alert(
+            "Success",
+            `Dose ${newDosesToday}/${medication.requiredDoses} taken!`
+          );
+        }
+      } else {
+        Alert.alert("Info", "All required doses taken for today");
+      }
+    } catch (error) {
+      console.error("Error recording medication intake:", error);
+      Alert.alert("Error", "Failed to record medication intake");
+    }
   };
 
-  const deleteMedication = (id: string) => {
+  const handleDeleteMedication = async (id: string) => {
     Alert.alert(
       "Delete Medication",
       "Are you sure you want to delete this medication?",
@@ -92,27 +146,75 @@ export default function MedicationsScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () =>
-            setMedications((prev) => prev.filter((med) => med.id !== id)),
+          onPress: async () => {
+            try {
+              setDeletingId(id);
+              await deleteMedication(id);
+              await loadMedications();
+              Alert.alert("Success", "Medication deleted successfully!");
+            } catch (error) {
+              console.error("Error deleting medication:", error);
+              Alert.alert("Error", "Failed to delete medication");
+            } finally {
+              setDeletingId(null);
+            }
+          },
         },
       ]
     );
   };
 
-  const takenToday = medications.filter((med) => med.taken).length;
+  const totalDosesTakenToday = medications.reduce(
+    (sum, med) => sum + med.dosesToday,
+    0
+  );
+  const totalRequiredDoses = medications.reduce(
+    (sum, med) => sum + med.requiredDoses,
+    0
+  );
+  const fullyCompleteMedications = medications.filter(
+    (med) => med.taken
+  ).length;
   const totalMedications = medications.length;
+
+  if (isLoading) {
+    return (
+      <ScreenWrapper>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading medications...</Text>
+        </View>
+      </ScreenWrapper>
+    );
+  }
 
   return (
     <>
       <ScreenWrapper>
         <View style={styles.header}>
-          <Text style={styles.title}>Medications</Text>
-          <Text style={styles.subtitle}>Manage your daily medications</Text>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: "column",
+            }}
+          >
+            <Text style={styles.title}>Medications</Text>
+            <Text style={styles.subtitle}>Manage your daily medications</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setModalVisible(true)}
+          >
+            <MaterialIcons name="add" size={24} color={Colors.white} />
+          </TouchableOpacity>
         </View>
 
         <CardWithTitle title="Today's Progress">
           <Text style={styles.progressText}>
-            {takenToday}/{totalMedications} taken
+            {totalDosesTakenToday}/{totalRequiredDoses} doses taken
+          </Text>
+          <Text style={styles.progressSubText}>
+            {fullyCompleteMedications}/{totalMedications} medications completed
           </Text>
           <View style={styles.progressBar}>
             <View
@@ -120,8 +222,8 @@ export default function MedicationsScreen() {
                 styles.progressFill,
                 {
                   width: `${
-                    totalMedications > 0
-                      ? (takenToday / totalMedications) * 100
+                    totalRequiredDoses > 0
+                      ? (totalDosesTakenToday / totalRequiredDoses) * 100
                       : 0
                   }%`,
                 },
@@ -130,32 +232,46 @@ export default function MedicationsScreen() {
           </View>
         </CardWithTitle>
 
-        <Button
-          title="Add Medication"
-          onPress={() => setModalVisible(true)}
-          variant="primary"
-          icon="add"
-          style={styles.addButton}
-        />
-
         <View style={styles.medicationsContainer}>
           {medications.map((medication) => (
-            <View key={medication.id} style={styles.medicationCard}>
+            <BaseCard
+              key={medication.medicationId}
+              style={styles.medicationCard}
+            >
               <View style={styles.medicationHeader}>
                 <View style={styles.medicationInfo}>
                   <Text style={styles.medicationName}>{medication.name}</Text>
                   <Text style={styles.medicationDosage}>
                     {medication.dosage} • {medication.frequency}
                   </Text>
+                  {medication.requiredDoses > 1 && (
+                    <Text style={styles.doseProgress}>
+                      {medication.dosesToday}/{medication.requiredDoses} doses
+                      today
+                    </Text>
+                  )}
                   <Text style={styles.medicationTime}>
-                    ⏰ {medication.time}
+                    {medication.instructions || "No specific instructions"}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => deleteMedication(medication.id)}
+                  onPress={() => {
+                    if (medication.medicationId) {
+                      handleDeleteMedication(medication.medicationId);
+                    }
+                  }}
+                  disabled={deletingId === medication.medicationId}
                 >
-                  <MaterialIcons name="delete" size={16} color={Colors.error} />
+                  {deletingId === medication.medicationId ? (
+                    <ActivityIndicator size="small" color={Colors.error} />
+                  ) : (
+                    <MaterialIcons
+                      name="delete"
+                      size={16}
+                      color={Colors.error}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
 
@@ -166,7 +282,7 @@ export default function MedicationsScreen() {
                     ? styles.takeButtonTaken
                     : styles.takeButtonPending,
                 ]}
-                onPress={() => toggleMedication(medication.id)}
+                onPress={() => toggleMedication(medication.medicationId)}
               >
                 <MaterialIcons
                   name={
@@ -183,10 +299,16 @@ export default function MedicationsScreen() {
                       : styles.takeButtonTextPending,
                   ]}
                 >
-                  {medication.taken ? "Taken" : "Take Now"}
+                  {medication.taken
+                    ? medication.requiredDoses > 1
+                      ? "All Doses Taken"
+                      : "Taken"
+                    : medication.requiredDoses > 1 && medication.dosesToday > 0
+                    ? `Take Dose ${medication.dosesToday + 1}`
+                    : "Take Now"}
                 </Text>
               </TouchableOpacity>
-            </View>
+            </BaseCard>
           ))}
         </View>
 
@@ -201,93 +323,32 @@ export default function MedicationsScreen() {
         )}
       </ScreenWrapper>
 
-      {/* Add Medication Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <AddMedicationModal
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Medication</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <MaterialIcons name="close" size={20} color={Colors.gray500} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Medication Name *</Text>
-              <TextInput
-                style={styles.input}
-                value={newMedication.name}
-                onChangeText={(text) =>
-                  setNewMedication((prev) => ({ ...prev, name: text }))
-                }
-                placeholder="e.g., Hydroxyurea"
-                placeholderTextColor={Colors.gray400}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Dosage *</Text>
-              <TextInput
-                style={styles.input}
-                value={newMedication.dosage}
-                onChangeText={(text) =>
-                  setNewMedication((prev) => ({ ...prev, dosage: text }))
-                }
-                placeholder="e.g., 500mg"
-                placeholderTextColor={Colors.gray400}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Frequency</Text>
-              <TextInput
-                style={styles.input}
-                value={newMedication.frequency}
-                onChangeText={(text) =>
-                  setNewMedication((prev) => ({ ...prev, frequency: text }))
-                }
-                placeholder="e.g., Daily, Twice daily"
-                placeholderTextColor={Colors.gray400}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Time</Text>
-              <TextInput
-                style={styles.input}
-                value={newMedication.time}
-                onChangeText={(text) =>
-                  setNewMedication((prev) => ({ ...prev, time: text }))
-                }
-                placeholder="e.g., 08:00"
-                placeholderTextColor={Colors.gray400}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.modalSaveButton}
-              onPress={addMedication}
-            >
-              <Text style={styles.modalSaveButtonText}>Add Medication</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setModalVisible(false)}
+        onMedicationAdded={loadMedications}
+        userId={userProfile?.userId || ""}
+      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.text,
+    marginTop: 10,
+  },
   header: {
-    marginBottom: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
   },
   title: {
     fontSize: 28,
@@ -299,32 +360,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.gray500,
   },
-  progressCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  progressTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: Colors.text,
-  },
   progressText: {
     fontSize: 16,
     fontWeight: "600",
     color: Colors.primary,
+  },
+  progressSubText: {
+    fontSize: 14,
+    color: Colors.gray500,
+    marginTop: 4,
   },
   progressBar: {
     height: 8,
@@ -337,38 +381,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: Colors.primary,
-    paddingVertical: 16,
-    borderRadius: 25,
-    marginBottom: 20,
-    shadowColor: Colors.primary,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
-  },
-  addButtonText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
   },
   medicationsContainer: {
     marginBottom: 30,
   },
   medicationCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 20,
     marginBottom: 16,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   medicationHeader: {
     flexDirection: "row",
@@ -388,6 +417,12 @@ const styles = StyleSheet.create({
   medicationDosage: {
     fontSize: 14,
     color: Colors.gray500,
+    marginBottom: 4,
+  },
+  doseProgress: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: "600",
     marginBottom: 4,
   },
   medicationTime: {
@@ -438,62 +473,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.gray500,
     textAlign: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 24,
-    width: "90%",
-    maxWidth: 400,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: Colors.text,
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 2,
-    borderColor: Colors.gray200,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.text,
-  },
-  modalSaveButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 16,
-    borderRadius: 25,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  modalSaveButtonText: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: "bold",
   },
 });

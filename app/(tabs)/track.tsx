@@ -1,14 +1,56 @@
+import {
+  createHydrationEntry,
+  createPainEntry,
+  getTodayHydrationTotal,
+  getTodayPainEntry,
+} from "@/backend";
 import { Button, CardWithTitle, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/utils/context/AuthProvider";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function TrackScreen() {
+  const { userProfile } = useAuth();
   const [painLevel, setPainLevel] = useState(0);
-  const [hydrationCount, setHydrationCount] = useState(0);
+  const [hydrationAmount, setHydrationAmount] = useState(0);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadTodayData = useCallback(async () => {
+    if (!userProfile?.userId) return;
+
+    try {
+      const hydrationData = await getTodayHydrationTotal(userProfile.userId);
+      if (hydrationData.total > 0) {
+        setHydrationAmount(hydrationData.total);
+      }
+
+      const painData = await getTodayPainEntry(userProfile.userId);
+      if (painData) {
+        setPainLevel(painData.painLevel);
+
+        if (
+          painData.description &&
+          painData.description.includes("Symptoms:")
+        ) {
+          const symptomsText = painData.description.split("Symptoms: ")[1];
+          if (symptomsText && symptomsText !== "No additional symptoms") {
+            const symptoms = symptomsText.split(", ");
+            setSelectedSymptoms(symptoms);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading today's data:", error);
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
+    loadTodayData();
+  }, [loadTodayData]);
 
   const symptoms = [
     { id: "fatigue", label: "Fatigue", icon: "bed" },
@@ -27,13 +69,48 @@ export default function TrackScreen() {
     );
   };
 
-  const saveTracking = () => {
-    // TODO: Implement saveTracking function
-    Alert.alert(
-      "Tracking Saved",
-      "Your symptoms have been recorded successfully.",
-      [{ text: "OK" }]
-    );
+  const saveTracking = async () => {
+    if (!userProfile?.userId) {
+      Alert.alert("Error", "Please log in to save your tracking data");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await createPainEntry(
+        userProfile.userId,
+        Math.round(painLevel),
+        ["other"], // TODO: Add UI for selecting pain location
+        selectedSymptoms.length > 0
+          ? `Pain level: ${Math.round(
+              painLevel
+            )}, Symptoms: ${selectedSymptoms.join(", ")}`
+          : `Pain level: ${Math.round(painLevel)}, No additional symptoms`
+      );
+
+      if (hydrationAmount > 0) {
+        await createHydrationEntry(userProfile.userId, hydrationAmount);
+      }
+
+      Alert.alert(
+        "Tracking Saved",
+        "Your symptoms and health data have been recorded successfully."
+      );
+    } catch (error) {
+      console.error("Error saving tracking data:", error);
+      Alert.alert("Error", "Failed to save tracking data. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addWater = () => {
+    setHydrationAmount((prev) => Number((prev + 0.25).toFixed(2)));
+  };
+
+  const removeWater = () => {
+    setHydrationAmount((prev) => Math.max(0, Number((prev - 0.25).toFixed(2))));
   };
 
   const getPainColor = (level: number) => {
@@ -97,24 +174,21 @@ export default function TrackScreen() {
               size={32}
               color={Colors.hydration}
             />
-            <Text style={styles.hydrationCount}>{hydrationCount} glasses</Text>
+            <Text style={styles.hydrationCount}>{hydrationAmount}L</Text>
           </View>
           <View style={styles.hydrationButtons}>
             <TouchableOpacity
               style={styles.hydrationButton}
-              onPress={() => setHydrationCount(Math.max(0, hydrationCount - 1))}
+              onPress={removeWater}
             >
               <MaterialIcons name="remove" size={20} color={Colors.white} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.hydrationButton}
-              onPress={() => setHydrationCount(hydrationCount + 1)}
-            >
+            <TouchableOpacity style={styles.hydrationButton} onPress={addWater}>
               <MaterialIcons name="add" size={20} color={Colors.white} />
             </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.hydrationGoal}>Goal: 8 glasses per day</Text>
+        <Text style={styles.hydrationGoal}>Goal: 2L per day</Text>
       </CardWithTitle>
 
       <CardWithTitle title="Symptoms">
@@ -156,10 +230,11 @@ export default function TrackScreen() {
       </CardWithTitle>
 
       <Button
-        title="Save Tracking"
+        title={isLoading ? "Saving..." : "Track"}
         onPress={saveTracking}
         variant="primary"
         style={styles.saveButton}
+        disabled={isLoading}
       />
     </ScreenWrapper>
   );
