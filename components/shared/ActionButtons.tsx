@@ -4,7 +4,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ActionButtonProps {
-  icon: keyof typeof MaterialIcons.glyphMap;
+  icon: string;
   label: string;
   onPress?: () => void;
   iconColor?: string;
@@ -27,7 +27,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
       style={[styles.actionButton, { backgroundColor }]}
       onPress={onPress}
     >
-      <MaterialIcons name={icon} size={32} color={iconColor} />
+      <MaterialIcons name={icon as any} size={32} color={iconColor} />
       <Text style={styles.actionText}>{label}</Text>
     </TouchableOpacity>
   );

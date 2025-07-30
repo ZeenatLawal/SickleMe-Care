@@ -1,9 +1,4 @@
-import {
-  deleteMedication,
-  getMedicationIntakes,
-  getUserMedications,
-  recordMedicationIntake,
-} from "@/backend";
+import { deleteMedication } from "@/backend";
 import {
   AddMedicationModal,
   BaseCard,
@@ -11,8 +6,12 @@ import {
   ScreenWrapper,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
-import { Medication } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
+import {
+  loadMedicationProgress,
+  takeMedication,
+  UIMedication,
+} from "@/utils/medicationUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -23,26 +22,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-type UIMedication = Partial<Medication> & {
-  taken: boolean;
-  dosesToday: number;
-  requiredDoses: number;
-};
-
-const getRequiredDosesPerDay = (frequency: string): number => {
-  switch (frequency) {
-    case "twice-daily":
-      return 2;
-    case "three-times-daily":
-      return 3;
-    case "daily":
-    case "weekly":
-    case "as-needed":
-    default:
-      return 1;
-  }
-};
 
 export default function MedicationsScreen() {
   const { userProfile } = useAuth();
@@ -56,33 +35,10 @@ export default function MedicationsScreen() {
 
     try {
       setIsLoading(true);
-      const userMeds = await getUserMedications(userProfile.userId);
-
-      const today = new Date().toISOString().split("T")[0];
-      const todayIntakes = await getMedicationIntakes(
-        userProfile.userId,
-        today
+      const medicationProgress = await loadMedicationProgress(
+        userProfile.userId
       );
-
-      const dosesCountMap = new Map<string, number>();
-      todayIntakes.forEach((intake) => {
-        const currentCount = dosesCountMap.get(intake.medicationId) || 0;
-        dosesCountMap.set(intake.medicationId, currentCount + 1);
-      });
-
-      const transformMeds = userMeds.map((med) => {
-        const requiredDoses = getRequiredDosesPerDay(med.frequency || "daily");
-        const dosesToday = dosesCountMap.get(med.medicationId || "") || 0;
-
-        return {
-          ...med,
-          taken: dosesToday >= requiredDoses,
-          dosesToday,
-          requiredDoses,
-        };
-      });
-
-      setMedications(transformMeds);
+      setMedications(medicationProgress.medications);
     } catch (error) {
       console.error("Error loading medications:", error);
       Alert.alert("Error", "Failed to load medications");
@@ -103,7 +59,7 @@ export default function MedicationsScreen() {
 
     try {
       if (medication.dosesToday < medication.requiredDoses) {
-        await recordMedicationIntake(userProfile.userId, id);
+        await takeMedication(userProfile.userId, id);
 
         setMedications((prev) =>
           prev.map((med) => {
@@ -221,11 +177,12 @@ export default function MedicationsScreen() {
               style={[
                 styles.progressFill,
                 {
-                  width: `${
+                  width: `${Math.min(
+                    100,
                     totalRequiredDoses > 0
                       ? (totalDosesTakenToday / totalRequiredDoses) * 100
                       : 0
-                  }%`,
+                  )}%`,
                 },
               ]}
             />
@@ -242,7 +199,7 @@ export default function MedicationsScreen() {
                 <View style={styles.medicationInfo}>
                   <Text style={styles.medicationName}>{medication.name}</Text>
                   <Text style={styles.medicationDosage}>
-                    {medication.dosage} • {medication.frequency}
+                    {medication.dosage} ({medication.frequency})
                   </Text>
                   {medication.requiredDoses > 1 && (
                     <Text style={styles.doseProgress}>
@@ -369,11 +326,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.gray500,
     marginTop: 4,
+    marginBottom: 8,
   },
   progressBar: {
     height: 8,
     backgroundColor: Colors.gray200,
     borderRadius: 4,
+    marginTop: 8,
+    overflow: "hidden",
   },
   progressFill: {
     height: "100%",

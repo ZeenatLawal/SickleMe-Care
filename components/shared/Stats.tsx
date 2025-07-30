@@ -4,7 +4,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface StatItemProps {
-  icon: keyof typeof MaterialIcons.glyphMap;
+  icon: string;
   value: string;
   label: string;
   iconColor?: string;
@@ -22,7 +22,7 @@ export const StatItem: React.FC<StatItemProps> = ({
 }) => {
   return (
     <View style={styles.statItem}>
-      <MaterialIcons name={icon} size={24} color={iconColor} />
+      <MaterialIcons name={icon as any} size={24} color={iconColor} />
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>

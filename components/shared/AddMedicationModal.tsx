@@ -1,6 +1,7 @@
 import { createMedication } from "@/backend";
 import { Button } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
+import { MedicationFrequency } from "@/types";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
@@ -30,7 +31,7 @@ export default function AddMedicationModal({
   const [newMedication, setNewMedication] = useState({
     name: "",
     dosage: "",
-    frequency: "daily" as any,
+    frequency: "daily",
     timeSlots: ["08:00"],
     instructions: "",
   });
@@ -40,7 +41,7 @@ export default function AddMedicationModal({
     setNewMedication({
       name: "",
       dosage: "",
-      frequency: "daily" as any,
+      frequency: "daily",
       timeSlots: ["08:00"],
       instructions: "",
     });
@@ -63,7 +64,7 @@ export default function AddMedicationModal({
         userId,
         newMedication.name.trim(),
         newMedication.dosage.trim(),
-        newMedication.frequency,
+        newMedication.frequency as MedicationFrequency,
         newMedication.instructions
       );
 
@@ -137,7 +138,7 @@ export default function AddMedicationModal({
                       onPress={() =>
                         setNewMedication({
                           ...newMedication,
-                          frequency: freq as any,
+                          frequency: freq,
                         })
                       }
                     >

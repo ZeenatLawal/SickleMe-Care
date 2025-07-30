@@ -1,4 +1,10 @@
 import {
+  createMoodEntry,
+  getTodayHydrationTotal,
+  getTodayMoodEntry,
+  getTodayPainEntry,
+} from "@/backend";
+import {
   ActionGrid,
   CardWithTitle,
   MoodSelector,
@@ -6,11 +12,102 @@ import {
   StatsGrid,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
-import React, { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { MoodType } from "@/types";
+import { useAuth } from "@/utils/context/AuthProvider";
+import { loadMedicationProgress } from "@/utils/medicationUtils";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 export default function DashboardScreen() {
+  const { userProfile } = useAuth();
   const [selectedMood, setSelectedMood] = useState<string>("");
+  const [hydrationTotal, setHydrationTotal] = useState(0);
+  const [hydrationGoal] = useState(2);
+  const [medicationsTaken, setMedicationsTaken] = useState(0);
+  const [medicationsTotal, setMedicationsTotal] = useState(0);
+  const [avgPainLevel, setAvgPainLevel] = useState(0);
+
+  const loadDashboardData = useCallback(async () => {
+    if (!userProfile?.userId) return;
+
+    try {
+      const todayMood = await getTodayMoodEntry(userProfile.userId);
+      if (todayMood) {
+        setSelectedMood(todayMood.mood);
+      }
+
+      const hydration = await getTodayHydrationTotal(userProfile.userId);
+      setHydrationTotal(hydration.total);
+
+      const medicationProgress = await loadMedicationProgress(
+        userProfile.userId
+      );
+      setMedicationsTotal(medicationProgress.totalMedications);
+      setMedicationsTaken(medicationProgress.completedMedications);
+
+      const todayPain = await getTodayPainEntry(userProfile.userId);
+      if (todayPain) {
+        setAvgPainLevel(todayPain.painLevel);
+      }
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+    }
+  }, [userProfile?.userId]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboardData();
+    }, [loadDashboardData])
+  );
+
+  const handleMoodSelect = async (mood: string) => {
+    setSelectedMood(mood);
+
+    if (!userProfile?.userId) {
+      Alert.alert("Error", "Please log in to save your mood");
+      return;
+    }
+
+    try {
+      await createMoodEntry(userProfile.userId, mood as MoodType);
+      Alert.alert("Success", "Mood saved successfully!");
+    } catch (error) {
+      console.error("Error saving mood:", error);
+      Alert.alert("Error", "Failed to save mood. Please try again.");
+    }
+  };
+
+  const handleQuickAction = async (actionType: string) => {
+    if (!userProfile?.userId) {
+      Alert.alert("Error", "Please log in to use this feature");
+      return;
+    }
+
+    try {
+      switch (actionType) {
+        case "water":
+          router.push("/(tabs)/track");
+          break;
+        case "pain":
+          router.push("/(tabs)/track");
+          break;
+        case "medication":
+          router.push("/(tabs)/medications");
+          break;
+        case "emergency":
+          Alert.alert("Emergency", "Emergency features coming soon");
+          break;
+      }
+    } catch (error) {
+      console.error("Error with quick action:", error);
+      Alert.alert("Error", "Action failed. Please try again.");
+    }
+  };
 
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -19,7 +116,6 @@ export default function DashboardScreen() {
     day: "numeric",
   });
 
-  // Mood options
   const moodOptions = [
     {
       emoji: "😊",
@@ -41,50 +137,56 @@ export default function DashboardScreen() {
     },
   ];
 
-  // Today's stats
   const todayStats = [
     {
-      icon: "water-drop" as const,
-      value: "6/8",
-      label: "Glasses",
+      icon: "water-drop",
+      value: `${hydrationTotal}L/${hydrationGoal}L`,
+      label: "Hydration",
       iconColor: Colors.hydration,
     },
     {
-      icon: "medication" as const,
-      value: "2/3",
+      icon: "medication",
+      value: `${medicationsTaken}/${medicationsTotal}`,
       label: "Medications",
       iconColor: Colors.primary,
     },
     {
-      icon: "favorite" as const,
-      value: "3/10",
+      icon: "favorite",
+      value: avgPainLevel > 0 ? `${avgPainLevel}/10` : "No data",
       label: "Pain Level",
-      iconColor: Colors.primary,
+      iconColor:
+        avgPainLevel > 7
+          ? Colors.error
+          : avgPainLevel > 4
+          ? Colors.painMedium
+          : Colors.primary,
     },
   ];
 
-  // Quick actions
   const quickActions = [
     {
-      icon: "trending-up" as const,
+      icon: "trending-up",
       label: "Log Pain",
       iconColor: Colors.primary,
+      onPress: () => handleQuickAction("pain"),
     },
     {
-      icon: "water-drop" as const,
+      icon: "water-drop",
       label: "Add Water",
       iconColor: Colors.hydration,
+      onPress: () => handleQuickAction("water"),
     },
     {
-      icon: "medication" as const,
+      icon: "medication",
       label: "Take Medication",
       iconColor: Colors.primary,
+      onPress: () => handleQuickAction("medication"),
     },
     {
-      icon: "emergency" as const,
+      icon: "emergency",
       label: "Emergency",
       iconColor: Colors.error,
-      // onPress: () => router.push("/(tabs)/emergency"),
+      onPress: () => handleQuickAction("emergency"),
     },
   ];
 
@@ -106,7 +208,7 @@ export default function DashboardScreen() {
         <MoodSelector
           moods={moodOptions}
           selectedMood={selectedMood}
-          onMoodSelect={setSelectedMood}
+          onMoodSelect={handleMoodSelect}
         />
       </CardWithTitle>
 
