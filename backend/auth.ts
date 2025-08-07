@@ -4,6 +4,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { serverTimestamp } from "firebase/firestore";
+import { User } from "../types/user";
 import { auth } from "./firebase";
 import { createUser, getUserById } from "./users";
 
@@ -17,7 +18,7 @@ export const loginWithEmail = async (email: string, password: string) => {
     const user = await getUserById(userCredential.user.uid);
 
     if (!user) {
-      throw new Error("User not found. Please create an account first.");
+      throw new Error("User profile not found. Please contact support.");
     }
 
     return user;
@@ -26,13 +27,13 @@ export const loginWithEmail = async (email: string, password: string) => {
 
     switch (error.code) {
       case "auth/user-not-found":
-        errorMessage = "No account found with this email.";
+        errorMessage = "No account found with this email address.";
         break;
       case "auth/wrong-password":
-        errorMessage = "Incorrect password.";
+        errorMessage = "Incorrect password. Please try again.";
         break;
       case "auth/invalid-email":
-        errorMessage = "Invalid email address.";
+        errorMessage = "Please enter a valid email address.";
         break;
       case "auth/too-many-requests":
         errorMessage = "Too many failed attempts. Please try again later.";
@@ -55,11 +56,25 @@ export const registerUser = async (
       password
     );
 
-    const userData = {
+    const userData: User = {
       userId: userCredential.user.uid,
       email: userCredential.user.email || "",
       name,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+
+      profile: {
+        dateOfBirth: null,
+        bloodType: null,
+        sickleCellType: null,
+        phoneNumber: null,
+        emergencyContact: {
+          name: null,
+          phoneNumber: null,
+          relationship: null,
+        },
+      },
+      notifications: false,
     };
 
     await createUser(userCredential.user.uid, userData);
@@ -72,7 +87,7 @@ export const registerUser = async (
         errorMessage = "This email is already in use.";
         break;
       case "auth/invalid-email":
-        errorMessage = "Invalid email address.";
+        errorMessage = "Please enter a valid email address.";
         break;
       case "auth/weak-password":
         errorMessage = "Password should be at least 6 characters.";

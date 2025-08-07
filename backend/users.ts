@@ -1,21 +1,8 @@
-import {
-  doc,
-  FieldValue,
-  getDoc,
-  setDoc,
-  Timestamp,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { User } from "../types/user";
 import { db } from "./firebase";
 
 const COLLECTION_NAME = "users";
-
-export interface User {
-  userId: string;
-  email: string;
-  name: string;
-  createdAt: Timestamp | FieldValue;
-}
 
 export const createUser = async (userId: string, userData: User) => {
   const userRef = doc(db, COLLECTION_NAME, userId);

@@ -1,16 +1,15 @@
 import { loginWithEmail } from "@/backend/auth";
+import { Button, FormInput, ScreenWrapper } from "@/components/shared";
+import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -49,7 +48,7 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper scrollable={false}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -59,79 +58,49 @@ const LoginScreen = () => {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color="#0D9488" />
+            <Ionicons name="arrow-back" size={24} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.description}>Log in to continue</Text>
+            <Text style={styles.description}>
+              Sign in to continue managing your health
+            </Text>
           </View>
 
           <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="mail-outline"
-                size={20}
-                color="#666"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Email address"
-                placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+            <FormInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email address"
+              keyboardType="email-address"
+              leftIcon="email"
+            />
 
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color="#666"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#9CA3AF"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
+            <FormInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              secureTextEntry={!showPassword}
+              leftIcon="lock"
+              rightIcon={showPassword ? "visibility" : "visibility-off"}
+              onRightIconPress={() => setShowPassword(!showPassword)}
+            />
 
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.buttonDisabled]}
+          <Button
+            title="LOG IN"
             onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.loginButtonText}>LOG IN</Text>
-            )}
-          </TouchableOpacity>
+            variant="primary"
+            loading={isLoading}
+            style={styles.loginButton}
+          />
 
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Don&#39;t have an account? </Text>
@@ -141,7 +110,7 @@ const LoginScreen = () => {
           </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
@@ -150,7 +119,6 @@ export default LoginScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
   },
   header: {
     paddingTop: 10,
@@ -166,20 +134,24 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 30,
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingTop: 40,
   },
   titleContainer: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 50,
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#0D9488",
-    marginBottom: 10,
+    color: Colors.primary,
+    marginBottom: 12,
   },
   description: {
     fontSize: 16,
+    color: Colors.gray500,
+    textAlign: "center",
+    lineHeight: 22,
   },
   form: {
     marginBottom: 30,
@@ -187,55 +159,59 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 16,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: Colors.text,
   },
   eyeIcon: {
-    padding: 5,
+    padding: 6,
   },
   forgotPassword: {
     alignSelf: "flex-end",
-    marginBottom: 10,
+    marginBottom: 16,
   },
   forgotPasswordText: {
-    color: "#0D9488",
+    color: Colors.primary,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   loginButton: {
-    backgroundColor: "#0D9488",
-    paddingVertical: 16,
+    backgroundColor: Colors.primary,
+    paddingVertical: 18,
     borderRadius: 25,
     alignItems: "center",
     marginBottom: 30,
-    shadowColor: "#0D9488",
+    shadowColor: Colors.primary,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: Colors.gray400,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   loginButtonText: {
-    color: "white",
+    color: Colors.white,
     fontSize: 18,
     fontWeight: "bold",
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   registerContainer: {
     flexDirection: "row",
@@ -243,11 +219,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   registerText: {
-    color: "#666",
+    color: Colors.gray500,
     fontSize: 16,
   },
   registerLink: {
-    color: "#0D9488",
+    color: Colors.primary,
     fontSize: 16,
     fontWeight: "bold",
   },

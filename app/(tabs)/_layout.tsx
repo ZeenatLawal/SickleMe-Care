@@ -1,45 +1,94 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { HapticTab } from "@/components/HapticTab";
+import TabBarBackground from "@/components/ui/TabBarBackground";
+import { Colors } from "@/constants/Colors";
+import { MaterialIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.gray400,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
+            position: "absolute",
+            paddingBottom: insets.bottom,
           },
-          default: {},
+          default: {
+            backgroundColor: Colors.white,
+            borderTopColor: Colors.gray200,
+            borderTopWidth: 1,
+            height: 60 + insets.bottom,
+            paddingBottom: insets.bottom + 8,
+            paddingTop: 8,
+          },
         }),
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Dashboard",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons size={28} name="dashboard" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="track"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Track",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons size={28} name="timeline" color={color} />
+          ),
         }}
       />
+      <Tabs.Screen
+        name="medications"
+        options={{
+          title: "Meds",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons size={28} name="medical-services" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="insights"
+        options={{
+          title: "Insights",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons size={28} name="insights" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons size={28} name="person" color={color} />
+          ),
+        }}
+      />
+
+      {/* Hidden tab */}
+      {/* <Tabs.Screen
+        name="emergency"
+        options={{
+          href: null,
+          title: "Emergency",
+        }}
+      /> */}
     </Tabs>
   );
 }

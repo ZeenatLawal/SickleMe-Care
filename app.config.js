@@ -6,7 +6,7 @@ export default {
     slug: "SickleMeCare",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png", //Replace with app logo
+    icon: "./assets/images/smc-plus.png",
     scheme: "sicklemecare",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -15,7 +15,7 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/images/smc-plus.png",
         backgroundColor: "#ffffff",
       },
       edgeToEdgeEnabled: true,
@@ -24,14 +24,14 @@ export default {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/favicon.png",
+      favicon: "./assets/images/smc-plus.png",
     },
     plugins: [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/smc-plus.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",

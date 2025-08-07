@@ -1,41 +1,28 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 
-const Logo = () => {
+interface LogoProps {
+  size?: number;
+  variant?: "full" | "small";
+}
+
+const Logo: React.FC<LogoProps> = ({ size = 120, variant = "full" }) => {
   return (
-    <>
-      <View style={styles.logo}>
-        <Text style={styles.logoText}>SICKLEME CARE+</Text>
-      </View>
-    </>
+    <View style={[styles.container, { width: size, height: size }]}>
+      <Image
+        source={require("../../assets/images/smc-plus.png")}
+        style={{ width: size, height: size }}
+        resizeMode="contain"
+      />
+    </View>
   );
 };
 
 export default Logo;
 
 const styles = StyleSheet.create({
-  logo: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "#0D9488",
-    justifyContent: "center",
+  container: {
     alignItems: "center",
-    marginBottom: 10,
-    shadowColor: "#0D9488",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  logoText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    letterSpacing: 1,
+    justifyContent: "center",
   },
 });

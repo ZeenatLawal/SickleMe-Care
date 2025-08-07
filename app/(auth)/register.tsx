@@ -1,23 +1,23 @@
 import { registerUser } from "@/backend/auth";
+import { Button, FormInput, ScreenWrapper } from "@/components/shared";
+import { Colors } from "@/constants/Colors";
+import { useNotifications } from "@/utils/context/NotificationProvider";
 import { validatePassword } from "@/utils/validatePassword";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
 const Register = () => {
+  const { requestPermissions } = useNotifications();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,6 +60,14 @@ const Register = () => {
         "Success!",
         "Account created successfully. Welcome to SickleMe Care+!"
       );
+
+      // Request notification permissions after successful registration
+      try {
+        await requestPermissions();
+      } catch (error) {
+        console.log("Notification permission request failed:", error);
+      }
+
       router.replace("/(tabs)");
     } catch (error: any) {
       Alert.alert("Account creation Failed", error);
@@ -69,7 +77,7 @@ const Register = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -79,138 +87,75 @@ const Register = () => {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color="#0D9488" />
+            <Ionicons name="arrow-back" size={24} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>Create your account</Text>
-            </View>
-
-            {/* Form */}
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="person-outline"
-                  size={20}
-                  color="#666"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full Name"
-                  placeholderTextColor="#9CA3AF"
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="mail-outline"
-                  size={20}
-                  color="#666"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email address"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color="#666"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color="#666"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color="#666"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm Password"
-                  placeholderTextColor="#9CA3AF"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <Ionicons
-                    name={
-                      showConfirmPassword ? "eye-outline" : "eye-off-outline"
-                    }
-                    size={20}
-                    color="#666"
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.registerButton,
-                isLoading && styles.buttonDisabled,
-              ]}
-              onPress={createAccount}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.registerButtonText}>Create Account</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push("/login")}>
-                <Text style={styles.loginLink}>Login</Text>
-              </TouchableOpacity>
-            </View>
+        <View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Create Your Account</Text>
+            <Text style={styles.subtitle}>
+              Join the SickleMe Care+ community
+            </Text>
           </View>
-        </ScrollView>
+
+          {/* Form */}
+          <View style={styles.form}>
+            <FormInput
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Full Name"
+              leftIcon="person"
+            />
+
+            <FormInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email address"
+              keyboardType="email-address"
+              leftIcon="email"
+            />
+
+            <FormInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              secureTextEntry={!showPassword}
+              leftIcon="lock"
+              rightIcon={showPassword ? "visibility" : "visibility-off"}
+              onRightIconPress={() => setShowPassword(!showPassword)}
+            />
+
+            <FormInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm Password"
+              secureTextEntry={!showConfirmPassword}
+              leftIcon="lock"
+              rightIcon={showConfirmPassword ? "visibility" : "visibility-off"}
+              onRightIconPress={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+            />
+          </View>
+
+          <Button
+            title="Create Account"
+            onPress={createAccount}
+            variant="primary"
+            loading={isLoading}
+            style={styles.registerButton}
+          />
+
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/login")}>
+              <Text style={styles.loginLink}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
@@ -219,11 +164,9 @@ export default Register;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
   },
   header: {
     paddingTop: 10,
-    paddingHorizontal: 20,
     paddingBottom: 10,
   },
   backButton: {
@@ -235,10 +178,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  content: {
-    paddingHorizontal: 30,
-    paddingBottom: 30,
-  },
   titleContainer: {
     alignItems: "center",
     marginBottom: 40,
@@ -246,8 +185,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#0D9488",
-    marginBottom: 10,
+    color: Colors.primary,
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.gray500,
+    textAlign: "center",
+    lineHeight: 22,
   },
   form: {
     marginBottom: 30,
@@ -255,46 +200,50 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 16,
-    marginBottom: 15,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: Colors.text,
   },
   eyeIcon: {
-    padding: 5,
+    padding: 6,
   },
   registerButton: {
-    backgroundColor: "#0D9488",
-    paddingVertical: 16,
+    backgroundColor: Colors.primary,
+    paddingVertical: 18,
     borderRadius: 25,
     alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#0D9488",
+    marginBottom: 24,
+    shadowColor: Colors.primary,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: Colors.gray400,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   registerButtonText: {
-    color: "white",
+    color: Colors.white,
     fontSize: 18,
     fontWeight: "bold",
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   loginContainer: {
     flexDirection: "row",
@@ -302,11 +251,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loginText: {
-    color: "#666",
+    color: Colors.gray500,
     fontSize: 16,
   },
   loginLink: {
-    color: "#0D9488",
+    color: Colors.primary,
     fontSize: 16,
     fontWeight: "bold",
   },
