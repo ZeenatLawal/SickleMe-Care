@@ -19,9 +19,12 @@ import {
 import Logo from "@/components/ui/Logo";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/utils/context/AuthProvider";
+import { useNotifications } from "@/utils/context/NotificationProvider";
 
 export default function ProfileScreen() {
   const { userProfile, logout } = useAuth();
+  const { permissions, requestPermissions, updateNotificationSettings } =
+    useNotifications();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -44,6 +47,10 @@ export default function ProfileScreen() {
 
     setIsLoading(true);
     try {
+      if (profileData.notifications !== userProfile?.notifications) {
+        await updateNotificationSettings(profileData.notifications);
+      }
+
       // TODO: Implement updateUser function with proper backend integration
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully!");
@@ -52,6 +59,18 @@ export default function ProfileScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleNotificationToggle = async (value: boolean) => {
+    if (value && permissions && !permissions.granted) {
+      const granted = await requestPermissions();
+      if (!granted) {
+        // User did not grant permissions
+        return;
+      }
+    }
+
+    setProfileData({ ...profileData, notifications: value });
   };
 
   const handleDeleteAccount = async () => {
@@ -88,7 +107,7 @@ export default function ProfileScreen() {
             setIsLoading(true);
             await logout();
             router.replace("/(auth)/welcome");
-          } catch (error) {
+          } catch {
             Alert.alert("Error", "Failed to logout. Please try again.");
           } finally {
             setIsLoading(false);
@@ -186,9 +205,7 @@ export default function ProfileScreen() {
             <Text style={styles.switchLabel}>Push Notifications</Text>
             <Switch
               value={profileData.notifications}
-              onValueChange={(value) =>
-                setProfileData({ ...profileData, notifications: value })
-              }
+              onValueChange={handleNotificationToggle}
               trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
               thumbColor={
                 profileData.notifications ? Colors.primary : Colors.gray400
@@ -196,6 +213,11 @@ export default function ProfileScreen() {
               disabled={!isEditing}
             />
           </View>
+          {permissions && !permissions.granted && (
+            <Text style={styles.permissionText}>
+              Permission required to enable notifications
+            </Text>
+          )}
         </CardWithTitle>
 
         <CardWithTitle title="Danger Zone">
@@ -288,6 +310,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     color: Colors.text,
+  },
+  permissionText: {
+    fontSize: 12,
+    color: Colors.gray600,
+    marginTop: 5,
+    fontStyle: "italic",
   },
   modalOverlay: {
     flex: 1,

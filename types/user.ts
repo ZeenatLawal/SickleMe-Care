@@ -26,4 +26,5 @@ export interface User {
   updatedAt: Timestamp | FieldValue;
   profile: UserProfile;
   notifications: boolean;
+  pushToken?: string | null;
 }

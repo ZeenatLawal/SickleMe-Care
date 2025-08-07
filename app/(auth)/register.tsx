@@ -1,6 +1,7 @@
 import { registerUser } from "@/backend/auth";
 import { Button, FormInput, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
+import { useNotifications } from "@/utils/context/NotificationProvider";
 import { validatePassword } from "@/utils/validatePassword";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -16,6 +17,7 @@ import {
 } from "react-native";
 
 const Register = () => {
+  const { requestPermissions } = useNotifications();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,6 +60,14 @@ const Register = () => {
         "Success!",
         "Account created successfully. Welcome to SickleMe Care+!"
       );
+
+      // Request notification permissions after successful registration
+      try {
+        await requestPermissions();
+      } catch (error) {
+        console.log("Notification permission request failed:", error);
+      }
+
       router.replace("/(tabs)");
     } catch (error: any) {
       Alert.alert("Account creation Failed", error);
