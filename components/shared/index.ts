@@ -11,3 +11,5 @@ export {
 export { MoodSelector } from "./MoodSelector";
 export { default as ScreenWrapper } from "./ScreenWrapper";
 export { StatItem, StatsGrid } from "./Stats";
+export { WeatherDisplay } from "./WeatherDisplay";
+export { WeatherRiskCard } from "./WeatherRiskCard";

@@ -10,6 +10,7 @@ import {
   MoodSelector,
   ScreenWrapper,
   StatsGrid,
+  WeatherDisplay,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { MoodType } from "@/types";
@@ -200,8 +201,15 @@ export default function DashboardScreen() {
   return (
     <ScreenWrapper>
       <View style={styles.header}>
-        <Text style={styles.greeting}>{getGreeting()}</Text>
-        <Text style={styles.date}>{currentDate}</Text>
+        <View
+          style={{
+            flex: 1,
+          }}
+        >
+          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={styles.date}>{currentDate}</Text>
+        </View>
+        <WeatherDisplay />
       </View>
 
       <CardWithTitle title="How are you feeling today?">
@@ -226,6 +234,9 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   header: {
     marginBottom: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   greeting: {
     fontSize: 28,

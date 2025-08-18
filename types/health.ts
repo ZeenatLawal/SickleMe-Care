@@ -1,7 +1,7 @@
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 // Mood tracking types
-export type MoodType = "great" | "good" | "okay" | "not-good" | "terrible";
+export type MoodType = "great" | "okay" | "not-good";
 
 export interface MoodEntry {
   moodId: string;
