@@ -20,7 +20,7 @@ export interface WeatherRiskAssessment {
 // Constants
 const API_KEY =
   Constants.expoConfig?.extra?.openWeatherApiKey ||
-  process.env.OPENWEATHER_API_KEY;
+  process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 const CACHE_DURATION = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -28,6 +28,10 @@ const CACHE_DURATION = 2 * 60 * 60 * 1000; // 2 hours
  * Get current weather conditions
  */
 export async function getCurrentWeather(lat: number, lon: number) {
+  if (!API_KEY) {
+    throw new Error("OpenWeather API key is missing");
+  }
+
   const cacheKey = `weather_current_${lat}_${lon}`;
   const cached = await getCachedData(cacheKey);
   if (cached) return cached;

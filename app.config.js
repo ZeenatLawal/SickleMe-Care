@@ -50,7 +50,7 @@ export default {
         process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
       firebaseMeasurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
-      openWeatherApiKey: process.env.OPENWEATHER_API_KEY,
+      openWeatherApiKey: process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY,
       router: {},
       eas: {
         projectId: "7d80f411-4095-4762-8520-ca9f1679b6f4",
