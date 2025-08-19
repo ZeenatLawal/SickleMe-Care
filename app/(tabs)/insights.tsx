@@ -6,7 +6,7 @@ import {
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/utils/context/AuthProvider";
-import { collectMLData } from "@/utils/ml/enhancedDataCollector";
+import { collectMLData } from "@/utils/ml/dataCollector";
 import type { CrisisPrediction } from "@/utils/ml/randomForestPredictor";
 import { randomForestPredictor } from "@/utils/ml/randomForestPredictor";
 import { getRiskColor, getRiskIcon } from "@/utils/weatherUtils";
