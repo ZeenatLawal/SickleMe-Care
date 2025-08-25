@@ -20,6 +20,7 @@ export default {
       },
       edgeToEdgeEnabled: true,
       package: "com.zeelaw.SickleMeCare",
+      googleServicesFile: "./google-services.json",
     },
     web: {
       bundler: "metro",
@@ -35,6 +36,14 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
+        },
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/smc-plus.png",
+          color: "#ffffff",
+          defaultChannel: "health-reminders",
         },
       ],
     ],

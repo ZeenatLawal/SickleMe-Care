@@ -1,3 +1,6 @@
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { AuthProvider } from "@/utils/context/AuthProvider";
+import { NotificationProvider } from "@/utils/context/NotificationProvider";
 import {
   DarkTheme,
   DefaultTheme,
@@ -8,10 +11,6 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { AuthProvider } from "@/utils/context/AuthProvider";
-import { NotificationProvider } from "@/utils/context/NotificationProvider";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
