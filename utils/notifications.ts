@@ -69,7 +69,7 @@ export async function scheduleDailyNotifications() {
 
     const now = new Date();
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 14; i++) {
       const morningTime = new Date(now);
       morningTime.setDate(now.getDate() + i);
       morningTime.setHours(8, 0, 0, 0);
@@ -119,7 +119,7 @@ export async function scheduleDailyNotifications() {
 
 export async function cancelDailyNotifications() {
   try {
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 14; i++) {
       await Notifications.cancelScheduledNotificationAsync(`daily-8am-${i}`);
       await Notifications.cancelScheduledNotificationAsync(`daily-8pm-${i}`);
     }
@@ -127,6 +127,29 @@ export async function cancelDailyNotifications() {
     return true;
   } catch (error) {
     console.error("Error cancelling daily notifications:", error);
+    return false;
+  }
+}
+
+export async function renewDailyNotificationsIfNeeded() {
+  try {
+    const scheduledNotifications =
+      await Notifications.getAllScheduledNotificationsAsync();
+    const dailyNotifications = scheduledNotifications.filter(
+      (notification) =>
+        notification.identifier.startsWith("daily-8am-") ||
+        notification.identifier.startsWith("daily-8pm-")
+    );
+
+    if (dailyNotifications.length < 12) {
+      // Renew
+      await scheduleDailyNotifications();
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error renewing daily notifications:", error);
     return false;
   }
 }

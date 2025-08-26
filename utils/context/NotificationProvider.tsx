@@ -12,6 +12,7 @@ import {
   areDailyNotificationsScheduled,
   cancelDailyNotifications,
   registerForPushNotificationsAsync,
+  renewDailyNotificationsIfNeeded,
   scheduleDailyNotifications,
 } from "../notifications";
 import { useAuth } from "./AuthProvider";
@@ -59,15 +60,6 @@ export function NotificationProvider({
 
   const notificationListener = useRef<EventSubscription>(null);
   const responseListener = useRef<EventSubscription>(null);
-
-  const checkDailyNotificationsStatus = async () => {
-    try {
-      const enabled = await areDailyNotificationsScheduled();
-      setDailyNotificationsEnabled(enabled);
-    } catch (error) {
-      console.error("Error checking daily notifications status:", error);
-    }
-  };
 
   const enableDailyNotifications = async (): Promise<boolean> => {
     try {
@@ -136,10 +128,13 @@ export function NotificationProvider({
 
   useEffect(() => {
     if (isAuthenticated && userProfile) {
-      checkDailyNotificationsStatus();
       areDailyNotificationsScheduled().then((enabled) => {
+        setDailyNotificationsEnabled(enabled);
+
         if (!enabled) {
           enableDailyNotifications();
+        } else {
+          renewDailyNotificationsIfNeeded();
         }
       });
     }
