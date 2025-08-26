@@ -80,15 +80,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
-      {/* Hidden tab */}
-      {/* <Tabs.Screen
-        name="emergency"
-        options={{
-          href: null,
-          title: "Emergency",
-        }}
-      /> */}
     </Tabs>
   );
 }

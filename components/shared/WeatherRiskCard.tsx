@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import type { WeatherRiskAssessment } from "@/utils/weather/weatherService";
 import { weatherService } from "@/utils/weather/weatherService";
-import { getRiskColor, getWeatherRiskIcon } from "@/utils/weatherUtils";
+import { getRiskColor, getWeatherRiskIcon } from "@/utils/weather/weatherUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {

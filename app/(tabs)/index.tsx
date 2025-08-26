@@ -7,6 +7,7 @@ import {
 import {
   ActionGrid,
   CardWithTitle,
+  EducationCards,
   MoodSelector,
   ScreenWrapper,
   StatsGrid,
@@ -100,8 +101,8 @@ export default function DashboardScreen() {
         case "medication":
           router.push("/(tabs)/medications");
           break;
-        case "emergency":
-          Alert.alert("Emergency", "Emergency features coming soon");
+        case "education":
+          router.push("/education");
           break;
       }
     } catch (error) {
@@ -184,10 +185,10 @@ export default function DashboardScreen() {
       onPress: () => handleQuickAction("medication"),
     },
     {
-      icon: "emergency",
-      label: "Emergency",
-      iconColor: Colors.error,
-      onPress: () => handleQuickAction("emergency"),
+      icon: "book",
+      label: "Learn",
+      iconColor: Colors.secondary,
+      onPress: () => handleQuickAction("education"),
     },
   ];
 
@@ -226,6 +227,10 @@ export default function DashboardScreen() {
 
       <CardWithTitle title="Quick Actions">
         <ActionGrid actions={quickActions} />
+      </CardWithTitle>
+
+      <CardWithTitle title="Learn About SCD">
+        <EducationCards />
       </CardWithTitle>
     </ScreenWrapper>
   );

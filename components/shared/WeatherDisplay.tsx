@@ -1,6 +1,6 @@
 import type { WeatherData } from "@/utils/weather/weatherService";
 import { weatherService } from "@/utils/weather/weatherService";
-import { getWeatherIcon } from "@/utils/weatherUtils";
+import { getWeatherIcon } from "@/utils/weather/weatherUtils";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Colors } from "react-native/Libraries/NewAppScreen";

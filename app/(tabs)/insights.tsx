@@ -9,7 +9,7 @@ import { useAuth } from "@/utils/context/AuthProvider";
 import { collectMLData } from "@/utils/ml/dataCollector";
 import type { CrisisPrediction } from "@/utils/ml/randomForestPredictor";
 import { randomForestPredictor } from "@/utils/ml/randomForestPredictor";
-import { getRiskColor, getRiskIcon } from "@/utils/weatherUtils";
+import { getRiskColor, getRiskIcon } from "@/utils/weather/weatherUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
