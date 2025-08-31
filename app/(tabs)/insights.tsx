@@ -64,7 +64,7 @@ export default function InsightsScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Health Insights</Text>
-          <Text style={styles.subtitle}>AI-powered health monitoring</Text>
+          <Text style={styles.subtitle}>Crisis risk prediction & analysis</Text>
         </View>
         <TouchableOpacity onPress={loadCrisisPrediction} disabled={loading}>
           <MaterialIcons name="refresh" size={24} color={Colors.primary} />

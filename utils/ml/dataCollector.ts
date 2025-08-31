@@ -1,43 +1,59 @@
-/**
- * Data Collection for Random Forest ML
- */
-
-import {
-  getTodayHydrationTotal,
-  getTodayMoodEntry,
-  getTodayPainEntry,
-} from "@/backend";
+import { getHydrationTotal, getMoodEntry, getPainEntry } from "@/backend";
+import { calculateMedicationAdherence } from "@/utils/medicationUtils";
 import { weatherService } from "@/utils/weather/weatherService";
+import { getPastDateString } from "../dateUtils";
 import type { SimplifiedPatientData } from "./randomForestPredictor";
 
+export type TimePeriod = "week" | "month" | "quarter";
+
+export const timePeriods = [
+  { id: "week", label: "7 Days" },
+  { id: "month", label: "30 Days" },
+  { id: "quarter", label: "90 Days" },
+];
+
+function getTimePeriodDays(timePeriod: TimePeriod) {
+  switch (timePeriod) {
+    case "week":
+      return 7;
+    case "month":
+      return 30;
+    case "quarter":
+      return 90;
+    default:
+      return 7;
+  }
+}
+
 /**
- * Collect data for Random Forest prediction
+ * Collect data for crisis prediction
  */
 export async function collectMLData(
-  userId: string
+  userId: string,
+  timePeriod: TimePeriod = "week"
 ): Promise<SimplifiedPatientData> {
   try {
     const [
       medicationAdherence,
-      todaysPain,
-      todaysHydration,
+      avgPainLevel,
+      hydrationLevel,
       weatherRisk,
-      todaysMood,
+      stressLevel,
     ] = await Promise.all([
-      estimateMedicationAdherence(userId),
-      getTodaysPainLevel(userId),
-      getTodaysHydrationLevel(userId),
+      getAdherenceRate(userId, timePeriod),
+      getAvgPainLevel(userId, timePeriod),
+      getAvgHydrationLevel(userId, timePeriod),
       getCurrentWeatherRisk(),
-      getTodaysStressLevel(userId),
+      getAvgStressLevel(userId, timePeriod),
     ]);
 
     return {
       medicationAdherence,
-      avgPainLevel: todaysPain,
-      hydrationLevel: todaysHydration,
+      avgPainLevel,
+      hydrationLevel,
       weatherRisk,
-      stressLevel: todaysMood,
-      daysSinceLastCrisis: estimateDaysSinceLastCrisis(todaysPain),
+      stressLevel,
+      daysSinceLastCrisis: estimateDaysSinceLastCrisis(avgPainLevel),
       userId,
     };
   } catch (error) {
@@ -55,30 +71,78 @@ export async function collectMLData(
 }
 
 /**
- * TODO: Implement medication adherence tracking
+ * Calculate medication adherence
  */
-async function estimateMedicationAdherence(userId: string) {
-  // Ceck medication logs
-  return 80; // Assume good adherence
+async function getAdherenceRate(
+  userId: string,
+  timePeriod: TimePeriod = "week"
+) {
+  try {
+    const dates = Array.from(
+      { length: getTimePeriodDays(timePeriod) },
+      (_, i) => getPastDateString(i)
+    );
+
+    const adherencePercentage = await calculateMedicationAdherence(
+      userId,
+      dates
+    );
+
+    return adherencePercentage;
+  } catch (error) {
+    console.error("Error calculating medication adherence:", error);
+    return 80;
+  }
 }
 
-async function getTodaysPainLevel(userId: string) {
+async function getAvgPainLevel(
+  userId: string,
+  timePeriod: TimePeriod = "week"
+) {
   try {
-    const painEntry = await getTodayPainEntry(userId);
-    return painEntry?.painLevel || 3;
+    const daysToCheck = getTimePeriodDays(timePeriod);
+    let totalPain = 0;
+    let daysWithData = 0;
+
+    for (let i = 0; i < daysToCheck; i++) {
+      const painEntry = await getPainEntry(userId, getPastDateString(i));
+      if (painEntry?.painLevel !== undefined) {
+        totalPain += painEntry.painLevel;
+        daysWithData++;
+      }
+    }
+
+    return daysWithData === 0 ? 3 : Math.round(totalPain / daysWithData);
   } catch (error) {
     console.warn("Pain data unavailable:", error);
     return 3;
   }
 }
 
-async function getTodaysHydrationLevel(userId: string) {
+async function getAvgHydrationLevel(
+  userId: string,
+  timePeriod: TimePeriod = "week"
+) {
   try {
-    const hydrationData = await getTodayHydrationTotal(userId);
+    const daysToCheck = getTimePeriodDays(timePeriod);
+    let totalHydrationPercentage = 0;
+    let daysWithData = 0;
     const dailyGoal = 2.0;
 
-    const percentage = Math.round((hydrationData.total / dailyGoal) * 100);
-    return Math.min(150, percentage);
+    for (let i = 0; i < daysToCheck; i++) {
+      const hydrationData = await getHydrationTotal(
+        userId,
+        getPastDateString(i)
+      );
+      if (hydrationData?.total > 0) {
+        totalHydrationPercentage += (hydrationData.total / dailyGoal) * 100;
+        daysWithData++;
+      }
+    }
+
+    if (daysWithData === 0) return 70;
+
+    return Math.min(150, Math.round(totalHydrationPercentage / daysWithData));
   } catch (error) {
     console.warn("Hydration data unavailable:", error);
     return 70;
@@ -88,10 +152,7 @@ async function getTodaysHydrationLevel(userId: string) {
 async function getCurrentWeatherRisk() {
   try {
     const location = await weatherService.getUserLocation();
-
-    if (!location) {
-      return 5;
-    }
+    if (!location) return 5;
 
     const weatherRisk = await weatherService.getWeatherRisk(
       location.latitude,
@@ -105,21 +166,30 @@ async function getCurrentWeatherRisk() {
   }
 }
 
-async function getTodaysStressLevel(userId: string) {
+async function getAvgStressLevel(
+  userId: string,
+  timePeriod: TimePeriod = "week"
+) {
   try {
-    const moodEntry = await getTodayMoodEntry(userId);
-
-    if (!moodEntry) {
-      return 5;
-    }
+    const daysToCheck = getTimePeriodDays(timePeriod);
+    let totalStress = 0;
+    let daysWithData = 0;
 
     const moodToStress: Record<string, number> = {
-      great: 1, // Low stress
-      okay: 5, // Moderate stress
-      "not-good": 9, // Very high stress
+      great: 1,
+      okay: 5,
+      "not-good": 9,
     };
 
-    return moodToStress[moodEntry.mood] || 5;
+    for (let i = 0; i < daysToCheck; i++) {
+      const moodEntry = await getMoodEntry(userId, getPastDateString(i));
+      if (moodEntry?.mood) {
+        totalStress += moodToStress[moodEntry.mood] || 5;
+        daysWithData++;
+      }
+    }
+
+    return daysWithData === 0 ? 5 : Math.round(totalStress / daysWithData);
   } catch (error) {
     console.warn("Mood data unavailable:", error);
     return 5;
@@ -127,13 +197,8 @@ async function getTodaysStressLevel(userId: string) {
 }
 
 function estimateDaysSinceLastCrisis(currentPain: number) {
-  if (currentPain >= 8) {
-    return 1; // Very recent crisis
-  } else if (currentPain >= 6) {
-    return 7;
-  } else if (currentPain >= 4) {
-    return 30;
-  } else {
-    return 90;
-  }
+  if (currentPain >= 8) return 1;
+  if (currentPain >= 6) return 7;
+  if (currentPain >= 4) return 30;
+  return 90;
 }

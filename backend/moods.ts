@@ -12,12 +12,13 @@ import {
   where,
 } from "firebase/firestore";
 import { MoodEntry, MoodType } from "../types/health";
+import { getTodayDateString } from "../utils/dateUtils";
 import { db } from "./firebase";
 
 const COLLECTION_NAME = "moods";
 
 export const createMoodEntry = async (userId: string, mood: MoodType) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayDateString();
 
   const q = query(
     collection(db, COLLECTION_NAME),
@@ -50,15 +51,13 @@ export const createMoodEntry = async (userId: string, mood: MoodType) => {
 };
 
 /**
- * Get today's mood entry for user
+ * Get mood entry for a specific date
  */
-export const getTodayMoodEntry = async (userId: string) => {
-  const today = new Date().toISOString().split("T")[0];
-
+export const getMoodEntry = async (userId: string, date: string) => {
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", "==", today),
+    where("date", "==", date),
     orderBy("createdAt", "desc"),
     limit(1)
   );

@@ -4,6 +4,7 @@ import {
   recordMedicationIntake,
 } from "@/backend";
 import { Medication } from "@/types";
+import { getTodayDateString } from "./dateUtils";
 
 export type UIMedication = Partial<Medication> & {
   taken: boolean;
@@ -36,8 +37,7 @@ export const getRequiredDosesPerDay = (frequency: string) => {
 //  Load and calculate medication progress for today
 export const loadMedicationProgress = async (userId: string) => {
   const userMeds = await getUserMedications(userId);
-  const today = new Date().toISOString().split("T")[0];
-  const todayIntakes = await getMedicationIntakes(userId, today);
+  const todayIntakes = await getMedicationIntakes(userId, getTodayDateString());
 
   // Count doses taken today for each medication
   const dosesCountMap = new Map<string, number>();
@@ -58,9 +58,7 @@ export const loadMedicationProgress = async (userId: string) => {
     totalDosesRequired += requiredDoses;
     totalDosesTaken += dosesToday;
 
-    if (taken) {
-      completedMedications++;
-    }
+    if (taken) completedMedications++;
 
     return {
       ...med,
@@ -81,4 +79,46 @@ export const loadMedicationProgress = async (userId: string) => {
 
 export const takeMedication = async (userId: string, medicationId: string) => {
   await recordMedicationIntake(userId, medicationId);
+};
+
+export const calculateMedicationAdherence = async (
+  userId: string,
+  dates: string[]
+): Promise<number> => {
+  const userMeds = await getUserMedications(userId);
+
+  if (userMeds.length === 0) return 100;
+
+  const allIntakes = await Promise.all(
+    dates.map((date) => getMedicationIntakes(userId, date))
+  );
+
+  let totalDosesRequired = 0;
+  let totalDosesTaken = 0;
+
+  dates.forEach((date, dayIndex) => {
+    const dayIntakes = allIntakes[dayIndex];
+
+    const dosesCountMap = new Map<string, number>();
+    dayIntakes.forEach((intake) => {
+      const currentCount = dosesCountMap.get(intake.medicationId) || 0;
+      dosesCountMap.set(intake.medicationId, currentCount + 1);
+    });
+
+    // Calculate required and taken for each medication
+    userMeds.forEach((med) => {
+      const requiredDoses = getRequiredDosesPerDay(med.frequency || "daily");
+      const dosesTaken = Math.min(
+        dosesCountMap.get(med.medicationId || "") || 0,
+        requiredDoses
+      );
+
+      totalDosesRequired += requiredDoses;
+      totalDosesTaken += dosesTaken;
+    });
+  });
+
+  return totalDosesRequired === 0
+    ? 100
+    : Math.min(100, Math.round((totalDosesTaken / totalDosesRequired) * 100));
 };

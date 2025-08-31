@@ -1,8 +1,8 @@
 import {
   createMoodEntry,
-  getTodayHydrationTotal,
-  getTodayMoodEntry,
-  getTodayPainEntry,
+  getHydrationTotal,
+  getMoodEntry,
+  getPainEntry,
 } from "@/backend";
 import {
   ActionGrid,
@@ -16,6 +16,7 @@ import {
 import { Colors } from "@/constants/Colors";
 import { MoodType } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
+import { getTodayDateString } from "@/utils/dateUtils";
 import { loadMedicationProgress } from "@/utils/medicationUtils";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -34,12 +35,13 @@ export default function DashboardScreen() {
     if (!userProfile?.userId) return;
 
     try {
-      const todayMood = await getTodayMoodEntry(userProfile.userId);
+      const today = getTodayDateString();
+      const todayMood = await getMoodEntry(userProfile.userId, today);
       if (todayMood) {
         setSelectedMood(todayMood.mood);
       }
 
-      const hydration = await getTodayHydrationTotal(userProfile.userId);
+      const hydration = await getHydrationTotal(userProfile.userId, today);
       setHydrationTotal(hydration.total);
 
       const medicationProgress = await loadMedicationProgress(
@@ -48,7 +50,7 @@ export default function DashboardScreen() {
       setMedicationsTotal(medicationProgress.totalMedications);
       setMedicationsTaken(medicationProgress.completedMedications);
 
-      const todayPain = await getTodayPainEntry(userProfile.userId);
+      const todayPain = await getPainEntry(userProfile.userId, today);
       if (todayPain) {
         setAvgPainLevel(todayPain.painLevel);
       }

@@ -9,6 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { PainEntry, PainLocation } from "../types/health";
+import { getTodayDateString } from "../utils/dateUtils";
 import { db } from "./firebase";
 
 const COLLECTION_NAME = "pain_entries";
@@ -22,7 +23,7 @@ export const createPainEntry = async (
   location: PainLocation[],
   description?: string
 ) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayDateString();
 
   const q = query(
     collection(db, COLLECTION_NAME),
@@ -60,15 +61,13 @@ export const createPainEntry = async (
 };
 
 /**
- * Get today's pain entry
+ * Get pain entry for a specific date
  */
-export const getTodayPainEntry = async (userId: string) => {
-  const today = new Date().toISOString().split("T")[0];
-
+export const getPainEntry = async (userId: string, date: string) => {
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", "==", today)
+    where("date", "==", date)
   );
 
   const querySnapshot = await getDocs(q);
