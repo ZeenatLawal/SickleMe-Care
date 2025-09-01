@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 
+import { updateUser } from "@/backend/users";
 import {
   Button,
   CardWithTitle,
@@ -23,8 +24,11 @@ import { useNotifications } from "@/utils/context/NotificationProvider";
 
 export default function ProfileScreen() {
   const { userProfile, logout } = useAuth();
-  const { permissions, requestPermissions, updateNotificationSettings } =
-    useNotifications();
+  const {
+    dailyNotificationsEnabled,
+    enableDailyNotifications,
+    disableDailyNotifications,
+  } = useNotifications();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -42,35 +46,84 @@ export default function ProfileScreen() {
     notifications: userProfile?.notifications ?? true,
   });
 
+  const handleNotificationToggle = async (value: boolean) => {
+    setProfileData({ ...profileData, notifications: value });
+
+    try {
+      if (value) {
+        const success = await enableDailyNotifications();
+        if (success) {
+          if (userProfile?.userId) {
+            await updateUser(userProfile.userId, { notifications: true });
+          }
+          Alert.alert(
+            "Notifications Enabled",
+            "You will receive daily reminders at 8 AM and 8 PM to help you track your health."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            "Failed to enable notifications. Please try again."
+          );
+          setProfileData({ ...profileData, notifications: false });
+        }
+      } else {
+        const success = await disableDailyNotifications();
+        if (success) {
+          if (userProfile?.userId) {
+            await updateUser(userProfile.userId, { notifications: false });
+          }
+          Alert.alert(
+            "Notifications Disabled",
+            "Daily health reminders have been turned off."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            "Failed to disable notifications. Please try again."
+          );
+          setProfileData({ ...profileData, notifications: true });
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling notifications:", error);
+      Alert.alert(
+        "Error",
+        "An error occurred while updating notification settings."
+      );
+      setProfileData({ ...profileData, notifications: !value });
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!userProfile?.userId) return;
 
     setIsLoading(true);
     try {
-      if (profileData.notifications !== userProfile?.notifications) {
-        await updateNotificationSettings(profileData.notifications);
-      }
+      const updates = {
+        name: profileData.name,
+        profile: {
+          ...userProfile.profile,
+          dateOfBirth: profileData.dateOfBirth,
+          emergencyContact: {
+            name: profileData.emergencyContactName,
+            phoneNumber: profileData.emergencyContactPhone,
+            relationship: profileData.emergencyContactRelationship,
+          },
+        },
+        notifications: profileData.notifications,
+      };
 
-      // TODO: Implement updateUser function with proper backend integration
+      await updateUser(userProfile.userId, updates);
+
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully!");
-    } catch {
+    } catch (error) {
+      console.error("Error updating profile:", error);
       Alert.alert("Error", "Failed to update profile. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleNotificationToggle = async (value: boolean) => {
-    if (value && permissions && !permissions.granted) {
-      const granted = await requestPermissions();
-      if (!granted) {
-        // User did not grant permissions
-        return;
-      }
-    }
-
-    setProfileData({ ...profileData, notifications: value });
   };
 
   const handleDeleteAccount = async () => {
@@ -200,24 +253,23 @@ export default function ProfileScreen() {
           />
         </CardWithTitle>
 
-        <CardWithTitle title="Preferences">
+        <CardWithTitle title="Notification Settings">
           <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>Push Notifications</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchLabel}>Daily Health Reminders</Text>
+              <Text style={styles.switchDescription}>
+                Get reminded to track your health at 8 AM and 8 PM daily
+              </Text>
+            </View>
             <Switch
-              value={profileData.notifications}
+              value={dailyNotificationsEnabled}
               onValueChange={handleNotificationToggle}
               trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
               thumbColor={
-                profileData.notifications ? Colors.primary : Colors.gray400
+                dailyNotificationsEnabled ? Colors.primary : Colors.gray400
               }
-              disabled={!isEditing}
             />
           </View>
-          {permissions && !permissions.granted && (
-            <Text style={styles.permissionText}>
-              Permission required to enable notifications
-            </Text>
-          )}
         </CardWithTitle>
 
         <CardWithTitle title="Danger Zone">
@@ -310,6 +362,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     color: Colors.text,
+    fontWeight: "500",
+  },
+  switchDescription: {
+    fontSize: 12,
+    color: Colors.gray600,
+    marginTop: 2,
   },
   permissionText: {
     fontSize: 12,

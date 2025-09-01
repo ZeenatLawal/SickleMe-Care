@@ -1,12 +1,13 @@
 import {
   createHydrationEntry,
   createPainEntry,
-  getTodayHydrationTotal,
-  getTodayPainEntry,
+  getHydrationTotal,
+  getPainEntry,
 } from "@/backend";
 import { Button, CardWithTitle, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/utils/context/AuthProvider";
+import { getTodayDateString } from "@/utils/dateUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import React, { useCallback, useEffect, useState } from "react";
@@ -23,12 +24,13 @@ export default function TrackScreen() {
     if (!userProfile?.userId) return;
 
     try {
-      const hydrationData = await getTodayHydrationTotal(userProfile.userId);
+      const today = getTodayDateString();
+      const hydrationData = await getHydrationTotal(userProfile.userId, today);
       if (hydrationData.total > 0) {
         setHydrationAmount(hydrationData.total);
       }
 
-      const painData = await getTodayPainEntry(userProfile.userId);
+      const painData = await getPainEntry(userProfile.userId, today);
       if (painData) {
         setPainLevel(painData.painLevel);
 

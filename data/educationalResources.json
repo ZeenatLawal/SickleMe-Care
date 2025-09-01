@@ -1,0 +1,106 @@
+{
+  "scd-basics": {
+    "title": "What is Sickle Cell Disease?",
+    "description": "Understanding the basics of SCD, genetics, and types",
+    "category": "basics",
+    "type": "article",
+    "icon": "information-circle",
+    "content": "Sickle Cell Disease (SCD) is a group of inherited red blood cell disorders. In SCD, red blood cells become hard and sticky and look like a C-shaped farm tool called a \"sickle.\"\n\nKey Facts:\n• SCD affects millions of people worldwide\n• It's passed down through families (genetic)\n• Red blood cells become sickle-shaped and can block blood flow\n• This causes pain and organ damage over time\n\nTypes of SCD:\n• HbSS (Sickle Cell Anemia) - most common and severe\n• HbSC - generally milder than HbSS\n• HbS beta thalassemia - varies in severity\n\nUnderstanding your specific type helps you and your healthcare team manage your condition better."
+  },
+  "pain-crisis": {
+    "title": "Understanding Pain Crisis",
+    "description": "What causes pain crisis and early warning signs",
+    "category": "crisis",
+    "type": "article",
+    "icon": "warning",
+    "content": "A pain crisis (vaso-occlusive crisis) happens when sickle-shaped cells block blood flow to parts of the body.\n\nCommon Triggers:\n• Dehydration\n• Extreme temperatures (hot or cold)\n• Stress (physical or emotional)\n• Infections\n• High altitudes\n• Overexertion\n\nWarning Signs:\n• Increasing fatigue\n• Mild pain that worsens\n• Difficulty concentrating\n• Fever or feeling unwell\n\nEarly Action Steps:\n1. Increase fluid intake\n2. Rest and avoid triggers\n3. Take prescribed pain medication\n4. Contact your healthcare team\n5. Monitor symptoms closely\n\nRemember: Early intervention can prevent a full crisis."
+  },
+  "hydration-guide": {
+    "title": "Staying Hydrated",
+    "description": "Why hydration is crucial and how to maintain it",
+    "category": "management",
+    "type": "article",
+    "icon": "water",
+    "content": "Proper hydration is one of the most important things you can do to prevent pain crises.\n\nWhy Hydration Matters:\n• Keeps blood flowing smoothly\n• Prevents red blood cells from sickling\n• Helps prevent pain crises\n• Supports kidney function\n• Maintains energy levels\n\nDaily Hydration Goals:\n• At least 8-10 glasses (2-2.5 litres) per day\n• More during hot weather or exercise\n• Increase intake when feeling unwell\n\nBest Hydration Sources:\n• Water (best choice)\n• Tea\n• Diluted fruit juices\n• Water-rich foods (watermelon, oranges)\n\nSigns You Need More Fluids:\n• Dark yellow urine\n• Feeling thirsty\n• Fatigue\n• Dizziness\n• Dry mouth\n\nTip: Set hydration reminders on your phone!"
+  },
+  "medication-adherence": {
+    "title": "Taking Your Medications",
+    "description": "Importance of medication adherence and tips for success",
+    "category": "management",
+    "type": "article",
+    "icon": "medical",
+    "content": "Taking medications as prescribed is crucial for managing SCD effectively.\n\nCommon SCD Medications:\n• Hydroxyurea - reduces pain crises and complications\n• Folic acid - supports red blood cell production\n• Pain medications - for crisis management\n• Antibiotics - for infection prevention\n\nTips for Medication Success:\n1. Set daily reminders\n2. Use a pill organizer\n3. Keep medications visible\n4. Understand what each medication does\n5. Never stop without consulting your doctor\n\nManaging Side Effects:\n• Report any new symptoms to your doctor\n• Keep a symptom diary\n• Don't adjust doses on your own\n• Ask about alternatives if needed\n\nRemember: Consistency is key to preventing complications."
+  },
+  "exercise-scd": {
+    "title": "Safe Exercise with SCD",
+    "description": "How to stay active while managing your condition",
+    "category": "lifestyle",
+    "type": "article",
+    "icon": "fitness",
+    "content": "Regular, moderate exercise can benefit people with SCD when done safely.\n\nBenefits of Exercise:\n• Improves circulation\n• Strengthens heart and lungs\n• Reduces stress\n• Maintains healthy weight\n• Improves mood and sleep\n\nSafe Exercise Guidelines:\n• Start slowly and build gradually\n• Stay well-hydrated before, during, and after\n• Avoid extreme temperatures\n• Listen to your body\n• Stop if you feel pain or fatigue\n\nRecommended Activities:\n• Walking\n• Yoga\n• Light cycling\n• Stretching exercises\n\nWarning Signs to Stop:\n• Unusual fatigue\n• Shortness of breath\n• Chest pain\n• Dizziness\n• Any pain crisis symptoms\n\nAlways consult your healthcare team before starting a new exercise program."
+  },
+  "mental-health": {
+    "title": "Mental Health & SCD",
+    "description": "Managing the emotional aspects of living with SCD",
+    "category": "support",
+    "type": "article",
+    "icon": "heart",
+    "content": "Living with a chronic condition like SCD can affect your mental health. This is normal and manageable.\n\nCommon Feelings:\n• Anxiety about pain crises\n• Frustration with limitations\n• Sadness or depression\n• Stress about the future\n• Feeling different from others\n\nHealthy Coping Strategies:\n• Connect with other people with SCD\n• Practice relaxation techniques\n• Maintain social connections\n• Pursue hobbies you enjoy\n• Set realistic goals\n\nWhen to Seek Help:\n• Persistent sadness or anxiety\n• Loss of interest in activities\n• Sleep problems\n• Difficulty concentrating\n• Thoughts of self-harm\n\nResources for Support:\n• SCD support groups\n• Mental health counselors\n• Online communities\n• Family and friends\n• Healthcare team\n\nRemember: Taking care of your mental health is just as important as managing your physical symptoms."
+  },
+  "understanding-scd": {
+    "title": "Understanding Sickle Cell Anemia",
+    "description": "Learn about the causes and symptoms for Sickle Cell Anemia.",
+    "category": "basics",
+    "type": "video",
+    "icon": "play-circle",
+    "url": "https://www.youtube.com/watch?v=wsykWqyXSKM"
+  },
+  "cdc-scd": {
+    "title": "CDC Sickle Cell Resources",
+    "description": "Official CDC information and resources",
+    "category": "basics",
+    "type": "external",
+    "icon": "globe",
+    "url": "https://www.cdc.gov/sickle-cell/"
+  },
+  "sickle-cell-foundation": {
+    "title": "Sickle Cell Disease Foundation",
+    "description": "Support, advocacy, and educational resources",
+    "category": "support",
+    "type": "external",
+    "icon": "people",
+    "url": "https://sicklecelldisease.org/"
+  },
+  "sickle-cell-society-uk": {
+    "title": "Sickle Cell Society (UK)",
+    "description": "UK's leading sickle cell charity providing support and information",
+    "category": "support",
+    "type": "external",
+    "icon": "people",
+    "url": "https://www.sicklecellsociety.org/"
+  },
+  "nhs-sickle-cell": {
+    "title": "NHS Sickle Cell Information",
+    "description": "Official NHS guidance on sickle cell disease",
+    "category": "basics",
+    "type": "external",
+    "icon": "medical",
+    "url": "https://www.nhs.uk/conditions/sickle-cell-disease/"
+  },
+  "sickle-cell-foundation-nigeria": {
+    "title": "Sickle Cell Foundation Nigeria",
+    "description": "Nigeria's premier organization for sickle cell awareness and support",
+    "category": "support",
+    "type": "external",
+    "icon": "people",
+    "url": "https://www.sicklecellFoundation.com/"
+  },
+  "nhlbi-scd": {
+    "title": "NHLBI Sickle Cell Information",
+    "description": "National Heart, Lung, and Blood Institute resources",
+    "category": "basics",
+    "type": "external",
+    "icon": "library",
+    "url": "https://www.nhlbi.nih.gov/health/sickle-cell-disease"
+  }
+}

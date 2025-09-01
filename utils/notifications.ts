@@ -1,38 +1,31 @@
+import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
     shouldShowBanner: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
     shouldShowList: true,
   }),
 });
 
-export interface NotificationPermissions {
-  granted: boolean;
-  canAskAgain: boolean;
-  status: Notifications.PermissionStatus;
-}
+export async function registerForPushNotificationsAsync() {
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("health-reminders", {
+      name: "Health Reminders",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
 
-/**
- * Request notification permissions from the user
- */
-export async function requestNotificationPermissions() {
-  try {
-    if (!Device.isDevice) {
-      return {
-        granted: false,
-        canAskAgain: false,
-        status: Notifications.PermissionStatus.DENIED,
-      };
-    }
-
+  if (Device.isDevice) {
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
+
     let finalStatus = existingStatus;
 
     if (existingStatus !== "granted") {
@@ -41,205 +34,140 @@ export async function requestNotificationPermissions() {
     }
 
     if (finalStatus !== "granted") {
-      return {
-        granted: false,
-        canAskAgain: finalStatus === "undetermined",
-        status: finalStatus,
-      };
+      throw new Error(
+        "Permission not granted to get push token for push notification!"
+      );
     }
 
-    // Configure notification for Android
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("health-reminders", {
-        name: "Health Reminders",
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#0D9488",
-        sound: "default",
-        description:
-          "Notifications for medication reminders and health tracking",
-      });
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ??
+      Constants?.easConfig?.projectId;
 
-      await Notifications.setNotificationChannelAsync("health-updates", {
-        name: "Health Updates",
-        importance: Notifications.AndroidImportance.DEFAULT,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#0D9488",
-        sound: "default",
-        description: "General health updates and insights",
-      });
+    if (!projectId) {
+      throw new Error("Project ID not found");
     }
 
-    return {
-      granted: true,
-      canAskAgain: true,
-      status: finalStatus,
-    };
-  } catch (error) {
-    console.error("Error requesting notification permissions:", error);
-    return {
-      granted: false,
-      canAskAgain: false,
-      status: Notifications.PermissionStatus.DENIED,
-    };
+    try {
+      const pushTokenString = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId,
+        })
+      ).data;
+
+      return pushTokenString;
+    } catch (e: unknown) {
+      throw new Error(`${e}`);
+    }
+  } else {
+    throw new Error("Must use physical device for push notifications");
   }
 }
 
-/**
- * Get current notification permission status
- */
-export async function getNotificationPermissions() {
+export async function scheduleDailyNotifications() {
   try {
-    const { status } = await Notifications.getPermissionsAsync();
-    return {
-      granted: status === "granted",
-      canAskAgain: status === "undetermined",
-      status,
-    };
-  } catch (error) {
-    console.error("Error getting notification permissions:", error);
-    return {
-      granted: false,
-      canAskAgain: false,
-      status: Notifications.PermissionStatus.DENIED,
-    };
-  }
-}
+    await cancelDailyNotifications();
 
-/**
- * Get push notification token
- */
-export async function getPushNotificationToken() {
-  try {
-    if (!Device.isDevice) {
-      return null;
-    }
+    const now = new Date();
 
-    const { data: token } = await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-    });
+    for (let i = 0; i < 14; i++) {
+      const morningTime = new Date(now);
+      morningTime.setDate(now.getDate() + i);
+      morningTime.setHours(8, 0, 0, 0);
 
-    return token;
-  } catch (error) {
-    console.error("Error getting push token:", error);
-    return null;
-  }
-}
-
-/**
- * Schedule a local notification
- */
-export async function scheduleLocalNotification(
-  title: string,
-  body: string,
-  trigger?: Notifications.NotificationTriggerInput,
-  data?: Record<string, any>
-) {
-  try {
-    const permissions = await getNotificationPermissions();
-    if (!permissions.granted) {
-      console.warn("Notification permissions not granted");
-      return null;
-    }
-
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data,
-        sound: "default",
-      },
-      trigger: trigger || null,
-    });
-
-    return id;
-  } catch (error) {
-    console.error("Error scheduling notification:", error);
-    return null;
-  }
-}
-
-/**
- * Schedule daily health reminders for 8am and 8pm
- */
-export async function scheduleDailyHealthReminders() {
-  try {
-    // Cancel existing reminders first
-    await cancelAllNotifications();
-
-    // Morning reminder - 8:00 AM
-    const morningTrigger = {
-      hour: 8,
-      minute: 0,
-      repeats: true,
-    } as Notifications.CalendarTriggerInput;
-
-    const morningId = await scheduleLocalNotification(
-      "Good Morning! 🌅",
-      "Time for your morning health check. Don't forget to track your symptoms and take your medications!",
-      morningTrigger,
-      {
-        type: "daily_health_reminder",
-        time: "morning",
+      if (morningTime > now) {
+        await Notifications.scheduleNotificationAsync({
+          identifier: `daily-8am-${i}`,
+          content: {
+            title: "Good Morning! 🌅",
+            body: "Time to check in with your health. How are you feeling today?",
+            data: { type: "daily-checkup", time: "morning" },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: morningTime,
+          },
+        });
       }
+
+      const eveningTime = new Date(now);
+      eveningTime.setDate(now.getDate() + i);
+      eveningTime.setHours(20, 0, 0, 0);
+
+      if (eveningTime > now) {
+        await Notifications.scheduleNotificationAsync({
+          identifier: `daily-8pm-${i}`,
+          content: {
+            title: "Evening Check-in 🌙",
+            body: "Don't forget to log your medications and track your symptoms.",
+            data: { type: "daily-checkup", time: "evening" },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: eveningTime,
+          },
+        });
+      }
+    }
+
+    console.log("Daily notifications scheduled successfully");
+    return true;
+  } catch (error) {
+    console.error("Error scheduling daily notifications:", error);
+    return false;
+  }
+}
+
+export async function cancelDailyNotifications() {
+  try {
+    for (let i = 0; i < 14; i++) {
+      await Notifications.cancelScheduledNotificationAsync(`daily-8am-${i}`);
+      await Notifications.cancelScheduledNotificationAsync(`daily-8pm-${i}`);
+    }
+    console.log("Daily notifications cancelled");
+    return true;
+  } catch (error) {
+    console.error("Error cancelling daily notifications:", error);
+    return false;
+  }
+}
+
+export async function renewDailyNotificationsIfNeeded() {
+  try {
+    const scheduledNotifications =
+      await Notifications.getAllScheduledNotificationsAsync();
+    const dailyNotifications = scheduledNotifications.filter(
+      (notification) =>
+        notification.identifier.startsWith("daily-8am-") ||
+        notification.identifier.startsWith("daily-8pm-")
     );
 
-    // Evening reminder - 8:00 PM
-    const eveningTrigger = {
-      hour: 20,
-      minute: 0,
-      repeats: true,
-    } as Notifications.CalendarTriggerInput;
+    if (dailyNotifications.length < 12) {
+      // Renew
+      await scheduleDailyNotifications();
+      return true;
+    }
 
-    const eveningId = await scheduleLocalNotification(
-      "Evening Check-in 🌙",
-      "Time for your evening health review. How are you feeling today?",
-      eveningTrigger,
-      {
-        type: "daily_health_reminder",
-        time: "evening",
-      }
+    return false;
+  } catch (error) {
+    console.error("Error renewing daily notifications:", error);
+    return false;
+  }
+}
+
+export async function areDailyNotificationsScheduled() {
+  try {
+    const scheduledNotifications =
+      await Notifications.getAllScheduledNotificationsAsync();
+
+    const hasMorning = scheduledNotifications.some((notification) =>
+      notification.identifier.startsWith("daily-8am-")
     );
-
-    console.log("Daily reminders scheduled:", { morningId, eveningId });
-    return { morningId, eveningId };
+    const hasEvening = scheduledNotifications.some((notification) =>
+      notification.identifier.startsWith("daily-8pm-")
+    );
+    return hasMorning && hasEvening;
   } catch (error) {
-    console.error("Error scheduling daily reminders:", error);
-    return null;
+    console.error("Error checking daily notifications:", error);
+    return false;
   }
-}
-
-/**
- * Cancel all scheduled notifications
- */
-export async function cancelAllNotifications() {
-  try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-  } catch (error) {
-    console.error("Error canceling all notifications:", error);
-  }
-}
-
-/**
- * Get all scheduled notifications
- */
-export async function getScheduledNotifications() {
-  try {
-    return await Notifications.getAllScheduledNotificationsAsync();
-  } catch (error) {
-    console.error("Error getting scheduled notifications:", error);
-    return [];
-  }
-}
-
-export function addNotificationReceivedListener(
-  listener: (notification: Notifications.Notification) => void
-) {
-  return Notifications.addNotificationReceivedListener(listener);
-}
-
-export function addNotificationResponseReceivedListener(
-  listener: (response: Notifications.NotificationResponse) => void
-) {
-  return Notifications.addNotificationResponseReceivedListener(listener);
 }

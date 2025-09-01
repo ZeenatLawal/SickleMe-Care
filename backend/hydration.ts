@@ -9,12 +9,13 @@ import {
   where,
 } from "firebase/firestore";
 import { HydrationEntry } from "../types/health";
+import { getTodayDateString } from "../utils/dateUtils";
 import { db } from "./firebase";
 
 const COLLECTION_NAME = "hydration_entries";
 
 export const createHydrationEntry = async (userId: string, amount: number) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayDateString();
 
   const q = query(
     collection(db, COLLECTION_NAME),
@@ -47,22 +48,20 @@ export const createHydrationEntry = async (userId: string, amount: number) => {
   }
 };
 
-export const getTodayHydrationTotal = async (userId: string) => {
-  const today = new Date().toISOString().split("T")[0];
-
+export const getHydrationTotal = async (userId: string, date: string) => {
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", "==", today)
+    where("date", "==", date)
   );
 
   const querySnapshot = await getDocs(q);
 
-  if (!querySnapshot.empty) {
-    const doc = querySnapshot.docs[0];
-    const data = doc.data();
-    return { total: Math.round(data.amount * 100) / 100 };
+  if (querySnapshot.empty) {
+    return { total: 0 };
   }
 
-  return { total: 0 };
+  const doc = querySnapshot.docs[0];
+  const data = doc.data();
+  return { total: data.amount };
 };

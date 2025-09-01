@@ -1,19 +1,22 @@
 import {
   createMoodEntry,
-  getTodayHydrationTotal,
-  getTodayMoodEntry,
-  getTodayPainEntry,
+  getHydrationTotal,
+  getMoodEntry,
+  getPainEntry,
 } from "@/backend";
 import {
   ActionGrid,
   CardWithTitle,
+  EducationCards,
   MoodSelector,
   ScreenWrapper,
   StatsGrid,
+  WeatherDisplay,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { MoodType } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
+import { getTodayDateString } from "@/utils/dateUtils";
 import { loadMedicationProgress } from "@/utils/medicationUtils";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -32,12 +35,13 @@ export default function DashboardScreen() {
     if (!userProfile?.userId) return;
 
     try {
-      const todayMood = await getTodayMoodEntry(userProfile.userId);
+      const today = getTodayDateString();
+      const todayMood = await getMoodEntry(userProfile.userId, today);
       if (todayMood) {
         setSelectedMood(todayMood.mood);
       }
 
-      const hydration = await getTodayHydrationTotal(userProfile.userId);
+      const hydration = await getHydrationTotal(userProfile.userId, today);
       setHydrationTotal(hydration.total);
 
       const medicationProgress = await loadMedicationProgress(
@@ -46,7 +50,7 @@ export default function DashboardScreen() {
       setMedicationsTotal(medicationProgress.totalMedications);
       setMedicationsTaken(medicationProgress.completedMedications);
 
-      const todayPain = await getTodayPainEntry(userProfile.userId);
+      const todayPain = await getPainEntry(userProfile.userId, today);
       if (todayPain) {
         setAvgPainLevel(todayPain.painLevel);
       }
@@ -99,8 +103,8 @@ export default function DashboardScreen() {
         case "medication":
           router.push("/(tabs)/medications");
           break;
-        case "emergency":
-          Alert.alert("Emergency", "Emergency features coming soon");
+        case "education":
+          router.push("/education");
           break;
       }
     } catch (error) {
@@ -183,10 +187,10 @@ export default function DashboardScreen() {
       onPress: () => handleQuickAction("medication"),
     },
     {
-      icon: "emergency",
-      label: "Emergency",
-      iconColor: Colors.error,
-      onPress: () => handleQuickAction("emergency"),
+      icon: "book",
+      label: "Learn",
+      iconColor: Colors.secondary,
+      onPress: () => handleQuickAction("education"),
     },
   ];
 
@@ -200,8 +204,15 @@ export default function DashboardScreen() {
   return (
     <ScreenWrapper>
       <View style={styles.header}>
-        <Text style={styles.greeting}>{getGreeting()}</Text>
-        <Text style={styles.date}>{currentDate}</Text>
+        <View
+          style={{
+            flex: 1,
+          }}
+        >
+          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={styles.date}>{currentDate}</Text>
+        </View>
+        <WeatherDisplay />
       </View>
 
       <CardWithTitle title="How are you feeling today?">
@@ -219,6 +230,10 @@ export default function DashboardScreen() {
       <CardWithTitle title="Quick Actions">
         <ActionGrid actions={quickActions} />
       </CardWithTitle>
+
+      <CardWithTitle title="Learn About SCD">
+        <EducationCards />
+      </CardWithTitle>
     </ScreenWrapper>
   );
 }
@@ -226,6 +241,9 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   header: {
     marginBottom: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   greeting: {
     fontSize: 28,

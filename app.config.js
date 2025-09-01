@@ -20,6 +20,7 @@ export default {
       },
       edgeToEdgeEnabled: true,
       package: "com.zeelaw.SickleMeCare",
+      googleServicesFile: "./google-services.json",
     },
     web: {
       bundler: "metro",
@@ -37,6 +38,14 @@ export default {
           backgroundColor: "#ffffff",
         },
       ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/smc-plus.png",
+          color: "#ffffff",
+          defaultChannel: "health-reminders",
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,
@@ -50,6 +59,7 @@ export default {
         process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
       firebaseMeasurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+      openWeatherApiKey: process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY,
       router: {},
       eas: {
         projectId: "7d80f411-4095-4762-8520-ca9f1679b6f4",

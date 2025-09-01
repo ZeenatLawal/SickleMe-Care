@@ -14,6 +14,7 @@ import {
   MedicationFrequency,
   MedicationIntake,
 } from "../types/health";
+import { getTodayDateString } from "../utils/dateUtils";
 import { db } from "./firebase";
 
 const MEDICATIONS_COLLECTION = "medications";
@@ -86,7 +87,7 @@ export const recordMedicationIntake = async (
   userId: string,
   medicationId: string
 ) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayDateString();
 
   const intakeData: Omit<MedicationIntake, "intakeId"> = {
     userId,
