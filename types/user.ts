@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp } from "firebase/firestore";
 
-export type SickleCellType = "SS" | "SC" | "SB+" | "SB0" | "AS" | "other";
+export type SickleCellType = "SS" | "SC" | "SB+" | "SB0" | "other";
 export type BloodType = "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
 
 export interface EmergencyContact {

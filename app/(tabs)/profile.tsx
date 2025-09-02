@@ -1,3 +1,4 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -7,6 +8,7 @@ import {
   Switch,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -19,6 +21,7 @@ import {
 } from "@/components/shared";
 import Logo from "@/components/ui/Logo";
 import { Colors } from "@/constants/Colors";
+import { BloodType, SickleCellType } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
 import { useNotifications } from "@/utils/context/NotificationProvider";
 
@@ -34,10 +37,25 @@ export default function ProfileScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
 
+  const bloodTypes: BloodType[] = [
+    "A+",
+    "A-",
+    "B+",
+    "B-",
+    "AB+",
+    "AB-",
+    "O+",
+    "O-",
+  ];
+  const sickleCellTypes: SickleCellType[] = ["SS", "SC", "SB+", "SB0", "other"];
+
   const [profileData, setProfileData] = useState({
     name: userProfile?.name || "",
     email: userProfile?.email || "",
     dateOfBirth: userProfile?.profile?.dateOfBirth || "",
+    phoneNumber: userProfile?.profile?.phoneNumber || "",
+    bloodType: userProfile?.profile?.bloodType || "",
+    sickleCellType: userProfile?.profile?.sickleCellType || "",
     emergencyContactName: userProfile?.profile?.emergencyContact?.name || "",
     emergencyContactPhone:
       userProfile?.profile?.emergencyContact?.phoneNumber || "",
@@ -58,7 +76,7 @@ export default function ProfileScreen() {
           }
           Alert.alert(
             "Notifications Enabled",
-            "You will receive daily reminders at 8 AM and 8 PM to help you track your health."
+            "You will receive daily reminders to help you track your health."
           );
         } else {
           Alert.alert(
@@ -105,6 +123,10 @@ export default function ProfileScreen() {
         profile: {
           ...userProfile.profile,
           dateOfBirth: profileData.dateOfBirth,
+          phoneNumber: profileData.phoneNumber || null,
+          bloodType: (profileData.bloodType as BloodType) || null,
+          sickleCellType:
+            (profileData.sickleCellType as SickleCellType) || null,
           emergencyContact: {
             name: profileData.emergencyContactName,
             phoneNumber: profileData.emergencyContactPhone,
@@ -175,18 +197,26 @@ export default function ProfileScreen() {
       <ScreenWrapper>
         <View style={styles.header}>
           <Logo size={80} />
-          <Text style={styles.title}>My Profile</Text>
-          <Text style={styles.subtitle}>Manage your health information</Text>
+          <View style={styles.titleContainer}>
+            <View>
+              <Text style={styles.title}>My Profile</Text>
+              <Text style={styles.subtitle}>
+                Manage your health information
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
+              style={styles.editIcon}
+              disabled={isLoading}
+            >
+              <MaterialIcons
+                name={isEditing ? "save" : "edit"}
+                size={24}
+                color={Colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <Button
-          title={isEditing ? "Save Changes" : "Edit Profile"}
-          onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
-          variant="primary"
-          icon={isEditing ? "save" : "edit"}
-          loading={isLoading}
-          style={styles.editButton}
-        />
 
         <CardWithTitle title="Basic Information">
           <FormInput
@@ -215,6 +245,89 @@ export default function ProfileScreen() {
             editable={isEditing}
             placeholder="YYYY-MM-DD"
           />
+
+          <FormInput
+            label="Phone Number"
+            value={profileData.phoneNumber}
+            onChangeText={(text) =>
+              setProfileData({ ...profileData, phoneNumber: text })
+            }
+            editable={isEditing}
+            placeholder="Your phone number"
+            keyboardType="phone-pad"
+          />
+        </CardWithTitle>
+
+        <CardWithTitle title="Medical Information">
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Blood Type</Text>
+            {isEditing ? (
+              <View style={styles.dropdownContainer}>
+                {bloodTypes.map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.dropdownItem,
+                      profileData.bloodType === type &&
+                        styles.dropdownItemSelected,
+                    ]}
+                    onPress={() =>
+                      setProfileData({ ...profileData, bloodType: type })
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        profileData.bloodType === type &&
+                          styles.dropdownTextSelected,
+                      ]}
+                    >
+                      {type}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.displayValue}>
+                {profileData.bloodType || "Not specified"}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Sickle Cell Type</Text>
+            {isEditing ? (
+              <View style={styles.dropdownContainer}>
+                {sickleCellTypes.map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.dropdownItem,
+                      profileData.sickleCellType === type &&
+                        styles.dropdownItemSelected,
+                    ]}
+                    onPress={() =>
+                      setProfileData({ ...profileData, sickleCellType: type })
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        profileData.sickleCellType === type &&
+                          styles.dropdownTextSelected,
+                      ]}
+                    >
+                      {type.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.displayValue}>
+                {profileData.sickleCellType?.toUpperCase() || "Not specified"}
+              </Text>
+            )}
+          </View>
         </CardWithTitle>
 
         <CardWithTitle title="Emergency Contact">
@@ -258,7 +371,7 @@ export default function ProfileScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.switchLabel}>Daily Health Reminders</Text>
               <Text style={styles.switchDescription}>
-                Get reminded to track your health at 8 AM and 8 PM daily
+                Get reminded to track your health daily
               </Text>
             </View>
             <Switch
@@ -272,21 +385,22 @@ export default function ProfileScreen() {
           </View>
         </CardWithTitle>
 
-        <CardWithTitle title="Danger Zone">
-          <Button
-            title="Logout"
-            onPress={handleLogout}
-            variant="secondary"
-            icon="logout"
-            style={{ marginBottom: 10 }}
-          />
-          <Button
+        <Button
+          title="Logout"
+          onPress={handleLogout}
+          variant="danger"
+          icon="logout"
+          style={{ marginBottom: 10 }}
+        />
+
+        {/*<CardWithTitle title="Danger Zone">
+           <Button
             title="Delete Account"
             onPress={() => setShowDeleteModal(true)}
             variant="danger"
             icon="delete"
-          />
-        </CardWithTitle>
+          /> 
+        </CardWithTitle>*/}
       </ScreenWrapper>
 
       <Modal
@@ -339,19 +453,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 30,
   },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 30,
+    marginTop: 10,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: Colors.text,
-    marginTop: 10,
+  },
+  editIcon: {
+    padding: 4,
   },
   subtitle: {
     fontSize: 16,
     color: Colors.gray600,
     marginTop: 5,
-  },
-  editButton: {
-    marginBottom: 20,
   },
   switchContainer: {
     flexDirection: "row",
@@ -368,6 +488,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.gray600,
     marginTop: 2,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  dropdownContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    backgroundColor: Colors.white,
+  },
+  dropdownItemSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: Colors.text,
+    fontWeight: "500",
+  },
+  dropdownTextSelected: {
+    color: Colors.white,
+  },
+  displayValue: {
+    fontSize: 16,
+    color: Colors.text,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.gray100,
+    borderRadius: 8,
   },
   permissionText: {
     fontSize: 12,

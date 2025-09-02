@@ -6,18 +6,31 @@ import {
 } from "@/backend";
 import { Button, CardWithTitle, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
+import { PainLocation } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
 import { getTodayDateString } from "@/utils/dateUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function TrackScreen() {
   const { userProfile } = useAuth();
   const [painLevel, setPainLevel] = useState(0);
   const [hydrationAmount, setHydrationAmount] = useState(0);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  const [selectedPainLocations, setSelectedPainLocations] = useState<string[]>(
+    []
+  );
+  const [customPainLocation, setCustomPainLocation] = useState("");
+  const [customSymptom, setCustomSymptom] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const loadTodayData = useCallback(async () => {
@@ -33,6 +46,7 @@ export default function TrackScreen() {
       const painData = await getPainEntry(userProfile.userId, today);
       if (painData) {
         setPainLevel(painData.painLevel);
+        setSelectedPainLocations(painData.location || []);
 
         if (
           painData.description &&
@@ -61,14 +75,46 @@ export default function TrackScreen() {
     { id: "dizziness", label: "Dizziness", icon: "blur-on" },
     { id: "nausea", label: "Nausea", icon: "sick" },
     { id: "fever", label: "Fever", icon: "device-thermostat" },
+    { id: "other", label: "Other", icon: "more-horiz" },
+  ];
+
+  const painLocations = [
+    { id: "chest", label: "Chest", icon: "favorite" },
+    { id: "back", label: "Back", icon: "back-hand" },
+    { id: "arms", label: "Arms", icon: "pan-tool" },
+    { id: "legs", label: "Legs", icon: "directions-walk" },
+    { id: "abdomen", label: "Abdomen", icon: "circle" },
+    { id: "joints", label: "Joints", icon: "join-inner" },
+    { id: "head", label: "Head", icon: "psychology" },
+    { id: "other", label: "Other", icon: "more-horiz" },
   ];
 
   const toggleSymptom = (symptomId: string) => {
-    setSelectedSymptoms((prev) =>
-      prev.includes(symptomId)
+    setSelectedSymptoms((prev) => {
+      const newSymptoms = prev.includes(symptomId)
         ? prev.filter((id) => id !== symptomId)
-        : [...prev, symptomId]
-    );
+        : [...prev, symptomId];
+
+      if (symptomId === "other" && !newSymptoms.includes("other")) {
+        setCustomSymptom("");
+      }
+
+      return newSymptoms;
+    });
+  };
+
+  const togglePainLocation = (locationId: string) => {
+    setSelectedPainLocations((prev) => {
+      const newLocations = prev.includes(locationId)
+        ? prev.filter((id) => id !== locationId)
+        : [...prev, locationId];
+
+      if (locationId === "other" && !newLocations.includes("other")) {
+        setCustomPainLocation("");
+      }
+
+      return newLocations;
+    });
   };
 
   const saveTracking = async () => {
@@ -80,14 +126,34 @@ export default function TrackScreen() {
     setIsLoading(true);
 
     try {
+      const finalPainLocations =
+        selectedPainLocations.length > 0
+          ? selectedPainLocations.map((loc) => {
+              if (loc === "other" && customPainLocation.trim()) {
+                return customPainLocation.trim();
+              }
+              return loc;
+            })
+          : ["other"];
+
+      const finalSymptoms =
+        selectedSymptoms.length > 0
+          ? selectedSymptoms.map((symptom) => {
+              if (symptom === "other" && customSymptom.trim()) {
+                return customSymptom.trim();
+              }
+              return symptom;
+            })
+          : [];
+
       await createPainEntry(
         userProfile.userId,
         Math.round(painLevel),
-        ["other"], // TODO: Add UI for selecting pain location
-        selectedSymptoms.length > 0
+        finalPainLocations as PainLocation[],
+        finalSymptoms.length > 0
           ? `Pain level: ${Math.round(
               painLevel
-            )}, Symptoms: ${selectedSymptoms.join(", ")}`
+            )}, Symptoms: ${finalSymptoms.join(", ")}`
           : `Pain level: ${Math.round(painLevel)}, No additional symptoms`
       );
 
@@ -138,6 +204,31 @@ export default function TrackScreen() {
         </Text>
       </View>
 
+      <CardWithTitle title="Hydration">
+        <View style={styles.hydrationContainer}>
+          <View style={styles.hydrationCounter}>
+            <MaterialIcons
+              name="water-drop"
+              size={32}
+              color={Colors.hydration}
+            />
+            <Text style={styles.hydrationCount}>{hydrationAmount}L</Text>
+          </View>
+          <View style={styles.hydrationButtons}>
+            <TouchableOpacity
+              style={styles.hydrationButton}
+              onPress={removeWater}
+            >
+              <MaterialIcons name="remove" size={20} color={Colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.hydrationButton} onPress={addWater}>
+              <MaterialIcons name="add" size={20} color={Colors.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <Text style={styles.hydrationGoal}>Goal: 2L per day</Text>
+      </CardWithTitle>
+
       <CardWithTitle title="Pain Level">
         <View style={styles.painContainer}>
           <View
@@ -168,29 +259,56 @@ export default function TrackScreen() {
         </View>
       </CardWithTitle>
 
-      <CardWithTitle title="Hydration">
-        <View style={styles.hydrationContainer}>
-          <View style={styles.hydrationCounter}>
-            <MaterialIcons
-              name="water-drop"
-              size={32}
-              color={Colors.hydration}
-            />
-            <Text style={styles.hydrationCount}>{hydrationAmount}L</Text>
-          </View>
-          <View style={styles.hydrationButtons}>
+      <CardWithTitle title="Pain Location">
+        <Text style={styles.cardSubtitle}>
+          Where are you experiencing pain? (Select all that apply)
+        </Text>
+        <View style={styles.symptomsGrid}>
+          {painLocations.map((location) => (
             <TouchableOpacity
-              style={styles.hydrationButton}
-              onPress={removeWater}
+              key={location.id}
+              style={[
+                styles.symptomButton,
+                selectedPainLocations.includes(location.id) &&
+                  styles.symptomButtonSelected,
+              ]}
+              onPress={() => togglePainLocation(location.id)}
             >
-              <MaterialIcons name="remove" size={20} color={Colors.white} />
+              <MaterialIcons
+                name={location.icon as any}
+                size={24}
+                color={
+                  selectedPainLocations.includes(location.id)
+                    ? Colors.white
+                    : Colors.primary
+                }
+              />
+              <Text
+                style={[
+                  styles.symptomText,
+                  selectedPainLocations.includes(location.id) &&
+                    styles.symptomTextSelected,
+                ]}
+              >
+                {location.label}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.hydrationButton} onPress={addWater}>
-              <MaterialIcons name="add" size={20} color={Colors.white} />
-            </TouchableOpacity>
-          </View>
+          ))}
         </View>
-        <Text style={styles.hydrationGoal}>Goal: 2L per day</Text>
+        {selectedPainLocations.includes("other") && (
+          <View style={styles.customInputContainer}>
+            <Text style={styles.customInputLabel}>
+              Specify other pain location:
+            </Text>
+            <TextInput
+              style={styles.customInput}
+              value={customPainLocation}
+              onChangeText={setCustomPainLocation}
+              placeholder="e.g., Lower back, Shoulder..."
+              placeholderTextColor={Colors.gray400}
+            />
+          </View>
+        )}
       </CardWithTitle>
 
       <CardWithTitle title="Symptoms">
@@ -229,6 +347,18 @@ export default function TrackScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        {selectedSymptoms.includes("other") && (
+          <View style={styles.customInputContainer}>
+            <Text style={styles.customInputLabel}>Specify other symptom:</Text>
+            <TextInput
+              style={styles.customInput}
+              value={customSymptom}
+              onChangeText={setCustomSymptom}
+              placeholder="e.g., Joint stiffness, Swelling..."
+              placeholderTextColor={Colors.gray400}
+            />
+          </View>
+        )}
       </CardWithTitle>
 
       <Button
@@ -357,6 +487,29 @@ const styles = StyleSheet.create({
   },
   symptomTextSelected: {
     color: Colors.white,
+  },
+  customInputContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: Colors.gray50,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  customInputLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  customInput: {
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: Colors.white,
+    color: Colors.text,
   },
   saveButton: {
     backgroundColor: Colors.primary,
