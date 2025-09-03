@@ -200,7 +200,7 @@ export default function TrackScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Track Your Health</Text>
         <Text style={styles.subtitle}>
-          Record your daily symptoms and activities
+          Record your daily symptoms and hydration levels
         </Text>
       </View>
 

@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Clipboard,
+  Linking,
   Modal,
   StyleSheet,
   Switch,
@@ -190,6 +192,52 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleFeedback = async () => {
+    const feedbackUrl =
+      "https://app.onlinesurveys.jisc.ac.uk/s/northampton/sickleme-care-post-study";
+
+    try {
+      const supported = await Linking.canOpenURL(feedbackUrl);
+      if (supported) {
+        await Linking.openURL(feedbackUrl);
+      } else {
+        Alert.alert(
+          "Cannot Open Link",
+          "Unable to open the feedback survey automatically. Would you like to copy the link?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Copy Link",
+              onPress: async () => {
+                try {
+                  Clipboard.setString(feedbackUrl);
+                  Alert.alert(
+                    "Link Copied",
+                    "The feedback survey link has been copied to your clipboard. You can now paste it in your browser."
+                  );
+                } catch {
+                  Alert.alert(
+                    "Copy Failed",
+                    "Unable to copy the link. Please manually copy this URL:\n\n" +
+                      feedbackUrl
+                  );
+                }
+              },
+            },
+          ]
+        );
+      }
+    } catch {
+      Alert.alert(
+        "Error",
+        "Failed to open feedback survey. Please try again later."
+      );
+    }
   };
 
   return (
@@ -384,6 +432,14 @@ export default function ProfileScreen() {
             />
           </View>
         </CardWithTitle>
+
+        <Button
+          title="Share Feedback"
+          onPress={handleFeedback}
+          variant="secondary"
+          icon="feedback"
+          style={{ marginBottom: 10 }}
+        />
 
         <Button
           title="Logout"
