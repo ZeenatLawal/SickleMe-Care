@@ -12,7 +12,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export async function registerForPushNotificationsAsync() {
+export async function registerForPushNotifications() {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("health-reminders", {
       name: "Health Reminders",
@@ -54,6 +54,7 @@ export async function registerForPushNotificationsAsync() {
         })
       ).data;
 
+      console.log("Push token retrieved");
       return pushTokenString;
     } catch (e: unknown) {
       throw new Error(`${e}`);

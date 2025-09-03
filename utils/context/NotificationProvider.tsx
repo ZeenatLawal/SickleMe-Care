@@ -1,17 +1,21 @@
+import { updateUser } from "@/backend";
 import * as Notifications from "expo-notifications";
 import { EventSubscription } from "expo-notifications";
 import { router } from "expo-router";
+import { serverTimestamp } from "firebase/firestore";
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
 } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import {
   areDailyNotificationsScheduled,
   cancelDailyNotifications,
-  registerForPushNotificationsAsync,
+  registerForPushNotifications,
   renewDailyNotificationsIfNeeded,
   scheduleDailyNotifications,
 } from "../notifications";
@@ -24,6 +28,7 @@ interface NotificationContextType {
   dailyNotificationsEnabled: boolean;
   enableDailyNotifications: () => Promise<boolean>;
   disableDailyNotifications: () => Promise<boolean>;
+  refreshPushToken: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
@@ -33,6 +38,7 @@ const NotificationContext = createContext<NotificationContextType>({
   dailyNotificationsEnabled: false,
   enableDailyNotifications: async () => false,
   disableDailyNotifications: async () => false,
+  refreshPushToken: async () => {},
 });
 
 export const useNotifications = () => {
@@ -87,8 +93,39 @@ export function NotificationProvider({
     }
   };
 
+  const refreshPushToken = useCallback(async () => {
+    if (!isAuthenticated || !userProfile?.userId) {
+      console.log("User not authenticated");
+      return;
+    }
+
+    try {
+      console.log("Refreshing push token...");
+      const newToken = await registerForPushNotifications();
+
+      if (newToken && newToken !== pushToken) {
+        console.log("Updating new push token...");
+        setPushToken(newToken);
+
+        await updateUser(userProfile.userId, {
+          pushToken: newToken,
+          updatedAt: serverTimestamp(),
+        });
+
+        console.log("Push token refreshed and updated successfully");
+      } else if (newToken === pushToken) {
+        console.log("Push token not updated");
+      }
+    } catch (error) {
+      console.error("Error refreshing push token:", error);
+      setError(
+        error instanceof Error ? error : new Error("Token refresh failed")
+      );
+    }
+  }, [isAuthenticated, userProfile?.userId, pushToken]);
+
   useEffect(() => {
-    registerForPushNotificationsAsync().then(
+    registerForPushNotifications().then(
       (token) => setPushToken(token),
       (error) => setError(error)
     );
@@ -140,6 +177,24 @@ export function NotificationProvider({
     }
   }, [isAuthenticated, userProfile]);
 
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active" && isAuthenticated) {
+        console.log("App became active, refreshing push token...");
+        refreshPushToken();
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [isAuthenticated, refreshPushToken]);
+
   return (
     <NotificationContext.Provider
       value={{
@@ -149,6 +204,7 @@ export function NotificationProvider({
         dailyNotificationsEnabled,
         enableDailyNotifications,
         disableDailyNotifications,
+        refreshPushToken,
       }}
     >
       {children}
