@@ -38,6 +38,12 @@ export const loginWithEmail = async (email: string, password: string) => {
       case "auth/too-many-requests":
         errorMessage = "Too many failed attempts. Please try again later.";
         break;
+      case "auth/network-request-failed":
+        errorMessage = "Network error. Please check your internet connection.";
+        break;
+      case "auth/invalid-credential":
+        errorMessage = "Invalid email or password.";
+        break;
     }
 
     throw new Error(errorMessage);

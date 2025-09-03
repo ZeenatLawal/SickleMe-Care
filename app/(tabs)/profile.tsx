@@ -26,6 +26,7 @@ import { Colors } from "@/constants/Colors";
 import { BloodType, SickleCellType } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
 import { useNotifications } from "@/utils/context/NotificationProvider";
+import { useOnboarding } from "@/utils/context/OnboardingProvider";
 
 export default function ProfileScreen() {
   const { userProfile, logout } = useAuth();
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
     enableDailyNotifications,
     disableDailyNotifications,
   } = useNotifications();
+  const { resetOnboarding } = useOnboarding();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -240,6 +242,11 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleViewOnboarding = async () => {
+    await resetOnboarding();
+    router.push("/(auth)/onboarding");
+  };
+
   return (
     <>
       <ScreenWrapper>
@@ -438,6 +445,14 @@ export default function ProfileScreen() {
           onPress={handleFeedback}
           variant="secondary"
           icon="feedback"
+          style={{ marginBottom: 10 }}
+        />
+
+        <Button
+          title="View App Onboarding"
+          onPress={handleViewOnboarding}
+          variant="secondary"
+          icon="help"
           style={{ marginBottom: 10 }}
         />
 

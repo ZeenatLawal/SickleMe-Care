@@ -1,5 +1,6 @@
 import Logo from "@/components/ui/Logo";
 import { useAuth } from "@/utils/context/AuthProvider";
+import { useOnboarding } from "@/utils/context/OnboardingProvider";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
 import {
@@ -11,17 +12,23 @@ import {
 } from "react-native";
 
 export default function IndexScreen() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { hasCompletedOnboarding, isLoading: onboardingLoading } =
+    useOnboarding();
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!authLoading && !onboardingLoading) {
       if (user) {
         router.replace("/(tabs)");
+      } else if (!hasCompletedOnboarding) {
+        router.replace("/(auth)/onboarding");
       } else {
         router.replace("/(auth)/welcome");
       }
     }
-  }, [user, isLoading]);
+  }, [user, authLoading, hasCompletedOnboarding, onboardingLoading]);
+
+  const isLoading = authLoading || onboardingLoading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -38,7 +45,7 @@ export default function IndexScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0D9488" />
         <Text style={styles.loadingText}>
-          {isLoading ? "Checking authentication..." : "Redirecting..."}
+          {isLoading ? "Loading..." : "Redirecting..."}
         </Text>
       </View>
     </SafeAreaView>

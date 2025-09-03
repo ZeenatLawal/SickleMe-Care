@@ -1,6 +1,7 @@
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { AuthProvider } from "@/utils/context/AuthProvider";
 import { NotificationProvider } from "@/utils/context/NotificationProvider";
+import { OnboardingProvider } from "@/utils/context/OnboardingProvider";
 import {
   DarkTheme,
   DefaultTheme,
@@ -24,21 +25,23 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-          >
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </NotificationProvider>
-      </AuthProvider>
+      <OnboardingProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <ThemeProvider
+              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            >
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </OnboardingProvider>
     </SafeAreaProvider>
   );
 }
