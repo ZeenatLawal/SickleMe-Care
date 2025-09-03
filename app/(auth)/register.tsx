@@ -1,7 +1,7 @@
 import { registerUser } from "@/backend/auth";
 import { Button, FormInput, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
-import { validatePassword } from "@/utils/validatePassword";
+import { validateEmail, validatePassword } from "@/utils/validate";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -30,13 +30,20 @@ const Register = () => {
       return;
     }
 
+    const isEmailValid = validateEmail(email);
+    if (!isEmailValid.isValid) {
+      Alert.alert("Error", isEmailValid.error);
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
       return;
     }
 
-    if (!validatePassword(password)) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+    const isPasswordValid = validatePassword(password);
+    if (!isPasswordValid.isValid) {
+      Alert.alert("Error", isPasswordValid.error);
       return;
     }
 
