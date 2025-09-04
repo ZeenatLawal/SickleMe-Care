@@ -271,7 +271,13 @@ export default function MedicationsScreen() {
 
         {medications.length === 0 && (
           <View style={styles.emptyState}>
-            <MaterialIcons name="medication" size={48} color={Colors.gray400} />
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <MaterialIcons
+                name="medication"
+                size={48}
+                color={Colors.gray400}
+              />
+            </TouchableOpacity>
             <Text style={styles.emptyStateText}>No medications added yet</Text>
             <Text style={styles.emptyStateSubtext}>
               Tap the button to add your first medication

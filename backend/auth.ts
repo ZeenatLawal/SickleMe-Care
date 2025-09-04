@@ -80,7 +80,7 @@ export const registerUser = async (
           relationship: null,
         },
       },
-      notifications: false,
+      notifications: true,
     };
 
     await createUser(userCredential.user.uid, userData);

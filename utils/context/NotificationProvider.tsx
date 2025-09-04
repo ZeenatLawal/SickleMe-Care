@@ -103,18 +103,25 @@ export function NotificationProvider({
       console.log("Refreshing push token...");
       const newToken = await registerForPushNotifications();
 
-      if (newToken && newToken !== pushToken) {
-        console.log("Updating new push token...");
-        setPushToken(newToken);
+      if (newToken) {
+        const shouldUpdate =
+          newToken !== pushToken ||
+          !userProfile.pushToken ||
+          userProfile.pushToken !== newToken;
 
-        await updateUser(userProfile.userId, {
-          pushToken: newToken,
-          updatedAt: serverTimestamp(),
-        });
+        if (shouldUpdate) {
+          console.log("Updating push token...");
+          setPushToken(newToken);
 
-        console.log("Push token refreshed and updated successfully");
-      } else if (newToken === pushToken) {
-        console.log("Push token not updated");
+          await updateUser(userProfile.userId, {
+            pushToken: newToken,
+            updatedAt: serverTimestamp(),
+          });
+
+          console.log("Push token updated successfully");
+        } else {
+          console.log("Push token already up to date");
+        }
       }
     } catch (error) {
       console.error("Error refreshing push token:", error);
@@ -122,7 +129,7 @@ export function NotificationProvider({
         error instanceof Error ? error : new Error("Token refresh failed")
       );
     }
-  }, [isAuthenticated, userProfile?.userId, pushToken]);
+  }, [isAuthenticated, userProfile?.userId, userProfile?.pushToken, pushToken]);
 
   useEffect(() => {
     registerForPushNotifications().then(
@@ -176,6 +183,14 @@ export function NotificationProvider({
       });
     }
   }, [isAuthenticated, userProfile]);
+
+  useEffect(() => {
+    if (isAuthenticated && userProfile && pushToken) {
+      if (!userProfile.pushToken) {
+        refreshPushToken();
+      }
+    }
+  }, [isAuthenticated, userProfile, pushToken, refreshPushToken]);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
