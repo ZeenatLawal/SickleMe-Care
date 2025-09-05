@@ -1,4 +1,5 @@
 import { updateUser } from "@/backend";
+import { NotificationType } from "@/types";
 import * as Notifications from "expo-notifications";
 import { EventSubscription } from "expo-notifications";
 import { router } from "expo-router";
@@ -13,32 +14,38 @@ import React, {
 } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import {
-  areDailyNotificationsScheduled,
-  cancelDailyNotifications,
+  NotificationHandlers,
   registerForPushNotifications,
-  renewDailyNotificationsIfNeeded,
-  scheduleDailyNotifications,
 } from "../notifications";
 import { useAuth } from "./AuthProvider";
+
+interface NotificationState {
+  [key: string]: boolean;
+}
 
 interface NotificationContextType {
   pushToken: string | null;
   notification: Notifications.Notification | null;
   error: Error | null;
-  dailyNotificationsEnabled: boolean;
-  enableDailyNotifications: () => Promise<boolean>;
-  disableDailyNotifications: () => Promise<boolean>;
+  notificationStates: NotificationState;
+  toggleNotification: (
+    type: NotificationType,
+    enabled: boolean
+  ) => Promise<boolean>;
+  isNotificationEnabled: (type: NotificationType) => boolean;
   refreshPushToken: () => Promise<void>;
+  requestPermissions: () => Promise<boolean>;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
   pushToken: null,
   notification: null,
   error: null,
-  dailyNotificationsEnabled: false,
-  enableDailyNotifications: async () => false,
-  disableDailyNotifications: async () => false,
+  notificationStates: {},
+  toggleNotification: async () => false,
+  isNotificationEnabled: () => false,
   refreshPushToken: async () => {},
+  requestPermissions: async () => false,
 });
 
 export const useNotifications = () => {
@@ -61,34 +68,74 @@ export function NotificationProvider({
     useState<Notifications.Notification | null>(null);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const [dailyNotificationsEnabled, setDailyNotificationsEnabled] =
-    useState(false);
+  const [notificationStates, setNotificationStates] =
+    useState<NotificationState>({
+      daily: false,
+      hydration: false,
+      medication: false,
+      insights: false,
+    });
 
   const notificationListener = useRef<EventSubscription>(null);
   const responseListener = useRef<EventSubscription>(null);
 
-  const enableDailyNotifications = async (): Promise<boolean> => {
+  const requestPermissions = useCallback(async () => {
     try {
-      const success = await scheduleDailyNotifications();
-      if (success) {
-        setDailyNotificationsEnabled(true);
+      const token = await registerForPushNotifications();
+      if (token) {
+        setPushToken(token);
+        setError(null);
+        return true;
       }
-      return success;
+      return false;
     } catch (error) {
-      console.error("Error enabling daily notifications:", error);
+      console.error("Error requesting permissions:", error);
+      setError(
+        error instanceof Error ? error : new Error("Permission request failed")
+      );
       return false;
     }
-  };
+  }, []);
 
-  const disableDailyNotifications = async (): Promise<boolean> => {
-    try {
-      const success = await cancelDailyNotifications();
-      if (success) {
-        setDailyNotificationsEnabled(false);
+  const toggleNotification = async (
+    type: NotificationType,
+    enabled: boolean
+  ) => {
+    if (enabled && !pushToken) {
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        console.log("Permission denied, cannot enable notification");
+        return false;
       }
+    }
+
+    const handler = NotificationHandlers[type];
+    if (!handler) {
+      console.error(`No handler found for notification type: ${type}`);
+      return false;
+    }
+
+    try {
+      const success = enabled
+        ? await handler.schedule()
+        : await handler.cancel();
+
+      if (success) {
+        setNotificationStates((prev) => ({ ...prev, [type]: enabled }));
+
+        if (userProfile?.userId) {
+          await updateUser(userProfile.userId, {
+            notificationSettings: {
+              ...userProfile.notificationSettings,
+              [type]: enabled,
+            },
+          });
+        }
+      }
+
       return success;
     } catch (error) {
-      console.error("Error disabling daily notifications:", error);
+      console.error(`Error toggling ${type} notifications:`, error);
       return false;
     }
   };
@@ -131,6 +178,33 @@ export function NotificationProvider({
     }
   }, [isAuthenticated, userProfile?.userId, userProfile?.pushToken, pushToken]);
 
+  const initializeNotifications = useCallback(async () => {
+    if (!isAuthenticated || !userProfile) return;
+
+    const newStates: NotificationState = {};
+
+    for (const [type, handler] of Object.entries(NotificationHandlers)) {
+      const notificationType = type as NotificationType;
+      const isScheduled = await handler.check();
+      const isEnabledInSettings =
+        userProfile.notificationSettings?.[notificationType] ?? true;
+
+      newStates[notificationType] = isScheduled;
+
+      if (!isScheduled && isEnabledInSettings) {
+        const success = await handler.schedule();
+        if (success) {
+          newStates[notificationType] = true;
+        }
+      } else if (isScheduled && !isEnabledInSettings) {
+        await handler.cancel();
+        newStates[notificationType] = false;
+      }
+    }
+
+    setNotificationStates(newStates);
+  }, [isAuthenticated, userProfile]);
+
   useEffect(() => {
     registerForPushNotifications().then(
       (token) => setPushToken(token),
@@ -153,8 +227,15 @@ export function NotificationProvider({
 
         console.log("data", JSON.stringify(data, null, 2));
 
-        if (data?.type === "daily-checkup") {
+        if (
+          data?.type === "daily-checkup" ||
+          data?.type === "hydration-reminder"
+        ) {
           router.push("/(tabs)/track");
+        } else if (data?.type === "medication-reminder") {
+          router.push("/(tabs)/medications");
+        } else if (data?.type === "insights-reminder") {
+          router.push("/(tabs)/insights");
         } else {
           router.push("/(tabs)");
         }
@@ -172,17 +253,9 @@ export function NotificationProvider({
 
   useEffect(() => {
     if (isAuthenticated && userProfile) {
-      areDailyNotificationsScheduled().then((enabled) => {
-        setDailyNotificationsEnabled(enabled);
-
-        if (!enabled) {
-          enableDailyNotifications();
-        } else {
-          renewDailyNotificationsIfNeeded();
-        }
-      });
+      initializeNotifications();
     }
-  }, [isAuthenticated, userProfile]);
+  }, [isAuthenticated, userProfile, initializeNotifications]);
 
   useEffect(() => {
     if (isAuthenticated && userProfile && pushToken) {
@@ -197,6 +270,10 @@ export function NotificationProvider({
       if (nextAppState === "active" && isAuthenticated) {
         console.log("App became active, refreshing push token...");
         refreshPushToken();
+
+        if (userProfile) {
+          initializeNotifications();
+        }
       }
     };
 
@@ -208,7 +285,7 @@ export function NotificationProvider({
     return () => {
       subscription?.remove();
     };
-  }, [isAuthenticated, refreshPushToken]);
+  }, [isAuthenticated, refreshPushToken, userProfile, initializeNotifications]);
 
   return (
     <NotificationContext.Provider
@@ -216,10 +293,12 @@ export function NotificationProvider({
         pushToken,
         notification,
         error,
-        dailyNotificationsEnabled,
-        enableDailyNotifications,
-        disableDailyNotifications,
+        notificationStates,
+        toggleNotification,
+        isNotificationEnabled: (type: NotificationType) =>
+          notificationStates[type] ?? false,
         refreshPushToken,
+        requestPermissions,
       }}
     >
       {children}

@@ -80,6 +80,17 @@ export const deleteMedication = async (medicationId: string) => {
   });
 };
 
+export const updateMedication = async (
+  medicationId: string,
+  updates: Partial<Medication>
+) => {
+  const docRef = doc(db, MEDICATIONS_COLLECTION, medicationId);
+  await updateDoc(docRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  });
+};
+
 /**
  * Record medication intake
  */

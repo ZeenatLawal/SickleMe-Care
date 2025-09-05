@@ -1,6 +1,7 @@
 export type {
   BloodType,
   EmergencyContact,
+  NotificationType,
   SickleCellType,
   User,
   UserProfile,

@@ -80,7 +80,12 @@ export const registerUser = async (
           relationship: null,
         },
       },
-      notifications: true,
+      notificationSettings: {
+        daily: true,
+        medication: false,
+        hydration: true,
+        insights: false,
+      },
     };
 
     await createUser(userCredential.user.uid, userData);

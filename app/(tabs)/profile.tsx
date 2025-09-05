@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Clipboard,
@@ -24,22 +24,35 @@ import {
 import Logo from "@/components/ui/Logo";
 import { Colors } from "@/constants/Colors";
 import { BloodType, SickleCellType } from "@/types";
+import { NotificationType } from "@/types/user";
 import { useAuth } from "@/utils/context/AuthProvider";
 import { useNotifications } from "@/utils/context/NotificationProvider";
 import { useOnboarding } from "@/utils/context/OnboardingProvider";
 
 export default function ProfileScreen() {
   const { userProfile, logout } = useAuth();
-  const {
-    dailyNotificationsEnabled,
-    enableDailyNotifications,
-    disableDailyNotifications,
-  } = useNotifications();
+  const { toggleNotification, isNotificationEnabled } = useNotifications();
   const { resetOnboarding } = useOnboarding();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
+
+  const [notificationSettings, setNotificationSettings] = useState({
+    daily: isNotificationEnabled("daily"),
+    medication: isNotificationEnabled("medication"),
+    hydration: isNotificationEnabled("hydration"),
+    insights: isNotificationEnabled("insights"),
+  });
+
+  useEffect(() => {
+    setNotificationSettings({
+      daily: isNotificationEnabled("daily"),
+      medication: isNotificationEnabled("medication"),
+      hydration: isNotificationEnabled("hydration"),
+      insights: isNotificationEnabled("insights"),
+    });
+  }, [userProfile, isNotificationEnabled]);
 
   const bloodTypes: BloodType[] = [
     "A+",
@@ -65,55 +78,39 @@ export default function ProfileScreen() {
       userProfile?.profile?.emergencyContact?.phoneNumber || "",
     emergencyContactRelationship:
       userProfile?.profile?.emergencyContact?.relationship || "",
-    notifications: userProfile?.notifications ?? true,
   });
 
-  const handleNotificationToggle = async (value: boolean) => {
-    setProfileData({ ...profileData, notifications: value });
+  const handleNotificationToggle = async (
+    type: NotificationType,
+    value: boolean
+  ) => {
+    const newSettings = { ...notificationSettings, [type]: value };
+    setNotificationSettings(newSettings);
 
     try {
-      if (value) {
-        const success = await enableDailyNotifications();
-        if (success) {
-          if (userProfile?.userId) {
-            await updateUser(userProfile.userId, { notifications: true });
-          }
-          Alert.alert(
-            "Notifications Enabled",
-            "You will receive daily reminders to help you track your health."
-          );
-        } else {
-          Alert.alert(
-            "Error",
-            "Failed to enable notifications. Please try again."
-          );
-          setProfileData({ ...profileData, notifications: false });
-        }
+      const success = await toggleNotification(type, value);
+
+      if (success) {
+        Alert.alert(
+          "Settings Updated",
+          `${type} notifications ${value ? "enabled" : "disabled"}`
+        );
       } else {
-        const success = await disableDailyNotifications();
-        if (success) {
-          if (userProfile?.userId) {
-            await updateUser(userProfile.userId, { notifications: false });
-          }
-          Alert.alert(
-            "Notifications Disabled",
-            "Daily health reminders have been turned off."
-          );
-        } else {
-          Alert.alert(
-            "Error",
-            "Failed to disable notifications. Please try again."
-          );
-          setProfileData({ ...profileData, notifications: true });
-        }
+        setNotificationSettings(notificationSettings);
+        Alert.alert(
+          "Error",
+          `Failed to ${
+            value ? "enable" : "disable"
+          } ${type} notifications. Please try again.`
+        );
       }
     } catch (error) {
-      console.error("Error toggling notifications:", error);
+      console.error(`Error toggling ${type} notifications:`, error);
+      setNotificationSettings(notificationSettings);
       Alert.alert(
         "Error",
-        "An error occurred while updating notification settings."
+        `Failed to update ${type} notification settings. Please try again.`
       );
-      setProfileData({ ...profileData, notifications: !value });
     }
   };
 
@@ -137,7 +134,6 @@ export default function ProfileScreen() {
             relationship: profileData.emergencyContactRelationship,
           },
         },
-        notifications: profileData.notifications,
       };
 
       await updateUser(userProfile.userId, updates);
@@ -430,12 +426,74 @@ export default function ProfileScreen() {
               </Text>
             </View>
             <Switch
-              value={dailyNotificationsEnabled}
-              onValueChange={handleNotificationToggle}
+              value={notificationSettings.daily}
+              onValueChange={(value) =>
+                handleNotificationToggle("daily", value)
+              }
               trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
               thumbColor={
-                dailyNotificationsEnabled ? Colors.primary : Colors.gray400
+                notificationSettings.daily ? Colors.primary : Colors.gray400
               }
+            />
+          </View>
+
+          <View style={styles.switchContainer}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchLabel}>Medication Reminders</Text>
+              <Text style={styles.switchDescription}>
+                Get notified when it&apos;s time to take your medications
+              </Text>
+            </View>
+            <Switch
+              value={notificationSettings.medication}
+              onValueChange={(value) =>
+                handleNotificationToggle("medication", value)
+              }
+              trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
+              thumbColor={
+                notificationSettings.medication
+                  ? Colors.primary
+                  : Colors.gray400
+              }
+            />
+          </View>
+
+          <View style={styles.switchContainer}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchLabel}>Hydration Reminders</Text>
+              <Text style={styles.switchDescription}>
+                Get reminded to stay hydrated throughout the day
+              </Text>
+            </View>
+            <Switch
+              value={notificationSettings.hydration}
+              onValueChange={(value) =>
+                handleNotificationToggle("hydration", value)
+              }
+              trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
+              thumbColor={
+                notificationSettings.hydration ? Colors.primary : Colors.gray400
+              }
+            />
+          </View>
+
+          <View style={styles.switchContainer}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchLabel}>Insights & Recommendations</Text>
+              <Text style={styles.switchDescription}>
+                Receive personalized health insights and tips
+              </Text>
+            </View>
+            <Switch
+              value={notificationSettings.insights}
+              onValueChange={(value) =>
+                handleNotificationToggle("insights", value)
+              }
+              trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
+              thumbColor={
+                notificationSettings.insights ? Colors.primary : Colors.gray400
+              }
+              disabled={true} // TODO: Implement insights notifications
             />
           </View>
         </CardWithTitle>
