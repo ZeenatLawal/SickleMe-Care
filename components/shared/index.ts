@@ -2,6 +2,7 @@ export { ActionButton, ActionGrid } from "./ActionButtons";
 export { default as AddMedicationModal } from "./AddMedicationModal";
 export { Button } from "./Button";
 export { BaseCard, CardWithTitle } from "./Card";
+export { DatePicker } from "./DatePicker";
 export { EducationCards } from "./EducationCards";
 export {
   FormInput,

@@ -1,17 +1,15 @@
-import { deleteMedication } from "@/backend";
+import { deleteMedication, recordMedicationIntake } from "@/backend";
 import {
   AddMedicationModal,
   BaseCard,
   CardWithTitle,
+  DatePicker,
   ScreenWrapper,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/utils/context/AuthProvider";
-import {
-  loadMedicationProgress,
-  takeMedication,
-  UIMedication,
-} from "@/utils/medicationUtils";
+import { getTodayDateString } from "@/utils/dateUtils";
+import { loadMedicationProgress, UIMedication } from "@/utils/medicationUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -25,6 +23,7 @@ import {
 
 export default function MedicationsScreen() {
   const { userProfile } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [medications, setMedications] = useState<UIMedication[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +35,8 @@ export default function MedicationsScreen() {
     try {
       setIsLoading(true);
       const medicationProgress = await loadMedicationProgress(
-        userProfile.userId
+        userProfile.userId,
+        selectedDate
       );
       setMedications(medicationProgress.medications);
     } catch (error) {
@@ -45,7 +45,7 @@ export default function MedicationsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [userProfile?.userId]);
+  }, [userProfile?.userId, selectedDate]);
 
   useEffect(() => {
     loadMedications();
@@ -59,7 +59,7 @@ export default function MedicationsScreen() {
 
     try {
       if (medication.dosesToday < medication.requiredDoses) {
-        await takeMedication(userProfile.userId, id);
+        await recordMedicationIntake(userProfile.userId, id, selectedDate);
 
         setMedications((prev) =>
           prev.map((med) => {
@@ -128,6 +128,7 @@ export default function MedicationsScreen() {
     (sum, med) => sum + med.requiredDoses,
     0
   );
+
   const fullyCompleteMedications = medications.filter(
     (med) => med.taken
   ).length;
@@ -165,7 +166,25 @@ export default function MedicationsScreen() {
           </TouchableOpacity>
         </View>
 
-        <CardWithTitle title="Today's Progress">
+        <DatePicker
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+        />
+
+        <CardWithTitle
+          title={
+            selectedDate === getTodayDateString()
+              ? "Today's Progress"
+              : `Progress for ${new Date(selectedDate).toLocaleDateString(
+                  "en-US",
+                  {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  }
+                )}`
+          }
+        >
           <Text style={styles.progressText}>
             {totalDosesTakenToday}/{totalRequiredDoses} doses taken
           </Text>

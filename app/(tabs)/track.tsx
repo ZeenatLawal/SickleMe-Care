@@ -4,7 +4,12 @@ import {
   getHydrationTotal,
   getPainEntry,
 } from "@/backend";
-import { Button, CardWithTitle, ScreenWrapper } from "@/components/shared";
+import {
+  Button,
+  CardWithTitle,
+  DatePicker,
+  ScreenWrapper,
+} from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { PainLocation } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
@@ -23,6 +28,7 @@ import {
 
 export default function TrackScreen() {
   const { userProfile } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [painLevel, setPainLevel] = useState(0);
   const [hydrationAmount, setHydrationAmount] = useState(0);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
@@ -33,17 +39,26 @@ export default function TrackScreen() {
   const [customSymptom, setCustomSymptom] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadTodayData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!userProfile?.userId) return;
 
     try {
-      const today = getTodayDateString();
-      const hydrationData = await getHydrationTotal(userProfile.userId, today);
+      setPainLevel(0);
+      setHydrationAmount(0);
+      setSelectedSymptoms([]);
+      setSelectedPainLocations([]);
+      setCustomPainLocation("");
+      setCustomSymptom("");
+
+      const hydrationData = await getHydrationTotal(
+        userProfile.userId,
+        selectedDate
+      );
       if (hydrationData.total > 0) {
         setHydrationAmount(hydrationData.total);
       }
 
-      const painData = await getPainEntry(userProfile.userId, today);
+      const painData = await getPainEntry(userProfile.userId, selectedDate);
       if (painData) {
         setPainLevel(painData.painLevel);
         setSelectedPainLocations(painData.location || []);
@@ -60,13 +75,13 @@ export default function TrackScreen() {
         }
       }
     } catch (error) {
-      console.error("Error loading today's data:", error);
+      console.error("Error loading data:", error);
     }
-  }, [userProfile]);
+  }, [userProfile, selectedDate]);
 
   useEffect(() => {
-    loadTodayData();
-  }, [loadTodayData]);
+    loadData();
+  }, [loadData]);
 
   const symptoms = [
     { id: "fatigue", label: "Fatigue", icon: "bed" },
@@ -154,11 +169,16 @@ export default function TrackScreen() {
           ? `Pain level: ${Math.round(
               painLevel
             )}, Symptoms: ${finalSymptoms.join(", ")}`
-          : `Pain level: ${Math.round(painLevel)}, No additional symptoms`
+          : `Pain level: ${Math.round(painLevel)}, No additional symptoms`,
+        selectedDate
       );
 
       if (hydrationAmount > 0) {
-        await createHydrationEntry(userProfile.userId, hydrationAmount);
+        await createHydrationEntry(
+          userProfile.userId,
+          hydrationAmount,
+          selectedDate
+        );
       }
 
       Alert.alert(
@@ -203,6 +223,8 @@ export default function TrackScreen() {
           Record your daily symptoms and hydration levels
         </Text>
       </View>
+
+      <DatePicker selectedDate={selectedDate} onDateSelect={setSelectedDate} />
 
       <CardWithTitle title="Hydration">
         <View style={styles.hydrationContainer}>

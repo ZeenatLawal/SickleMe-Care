@@ -1,8 +1,4 @@
-import {
-  getMedicationIntakes,
-  getUserMedications,
-  recordMedicationIntake,
-} from "@/backend";
+import { getMedicationIntakes, getUserMedications } from "@/backend";
 import { Medication } from "@/types";
 import { getTodayDateString } from "./dateUtils";
 
@@ -34,14 +30,15 @@ export const getRequiredDosesPerDay = (frequency: string) => {
   }
 };
 
-//  Load and calculate medication progress for today
-export const loadMedicationProgress = async (userId: string) => {
+//  Load and calculate medication progress
+export const loadMedicationProgress = async (userId: string, date?: string) => {
+  const entryDate = date || getTodayDateString();
   const userMeds = await getUserMedications(userId);
-  const todayIntakes = await getMedicationIntakes(userId, getTodayDateString());
+  const dayIntakes = await getMedicationIntakes(userId, entryDate);
 
-  // Count doses taken today for each medication
+  // Count doses taken for each medication
   const dosesCountMap = new Map<string, number>();
-  todayIntakes.forEach((intake) => {
+  dayIntakes.forEach((intake) => {
     const currentCount = dosesCountMap.get(intake.medicationId) || 0;
     dosesCountMap.set(intake.medicationId, currentCount + 1);
   });
@@ -75,10 +72,6 @@ export const loadMedicationProgress = async (userId: string) => {
     totalDosesTaken,
     totalDosesRequired,
   };
-};
-
-export const takeMedication = async (userId: string, medicationId: string) => {
-  await recordMedicationIntake(userId, medicationId);
 };
 
 export const calculateMedicationAdherence = async (

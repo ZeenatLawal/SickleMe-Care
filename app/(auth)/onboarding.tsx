@@ -32,7 +32,7 @@ const onboardingData = [
     color: Colors.secondary,
   },
   {
-    title: "Crisis Prediction",
+    title: "Crisis Risk Prediction",
     subtitle: "Early Warning System",
     description:
       "Our prediction system analyzes your health data and environmental factors to predict potential pain crises, helping you take preventive action early.",

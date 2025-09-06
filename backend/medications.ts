@@ -96,15 +96,16 @@ export const updateMedication = async (
  */
 export const recordMedicationIntake = async (
   userId: string,
-  medicationId: string
+  medicationId: string,
+  date?: string
 ) => {
-  const today = getTodayDateString();
+  const entryDate = date || getTodayDateString();
 
   const intakeData: Omit<MedicationIntake, "intakeId"> = {
     userId,
     medicationId,
     takenAt: serverTimestamp(),
-    date: today,
+    date: entryDate,
     createdAt: serverTimestamp(),
   };
 

@@ -477,7 +477,7 @@ export default function ProfileScreen() {
             />
           </View>
 
-          <View style={styles.switchContainer}>
+          {/* <View style={styles.switchContainer}>
             <View style={{ flex: 1 }}>
               <Text style={styles.switchLabel}>Insights & Recommendations</Text>
               <Text style={styles.switchDescription}>
@@ -495,7 +495,7 @@ export default function ProfileScreen() {
               }
               disabled={true} // TODO: Implement insights notifications
             />
-          </View>
+          </View> */}
         </CardWithTitle>
 
         <Button

@@ -14,13 +14,17 @@ import { db } from "./firebase";
 
 const COLLECTION_NAME = "hydration_entries";
 
-export const createHydrationEntry = async (userId: string, amount: number) => {
-  const today = getTodayDateString();
+export const createHydrationEntry = async (
+  userId: string,
+  amount: number,
+  date?: string
+) => {
+  const entryDate = date || getTodayDateString();
 
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", "==", today)
+    where("date", "==", entryDate)
   );
 
   const querySnapshot = await getDocs(q);
@@ -39,7 +43,7 @@ export const createHydrationEntry = async (userId: string, amount: number) => {
       userId,
       amount,
       createdAt: serverTimestamp(),
-      date: today,
+      date: entryDate,
     };
 
     const docRef = await addDoc(collection(db, COLLECTION_NAME), hydrationData);
