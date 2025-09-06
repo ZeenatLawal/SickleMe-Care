@@ -85,9 +85,6 @@ export default function ProfileScreen() {
     type: NotificationType,
     value: boolean
   ) => {
-    const newSettings = { ...notificationSettings, [type]: value };
-    setNotificationSettings(newSettings);
-
     try {
       const success = await toggleNotification(type, value);
 
@@ -96,6 +93,7 @@ export default function ProfileScreen() {
           "Settings Updated",
           `${type} notifications ${value ? "enabled" : "disabled"}`
         );
+        setNotificationSettings({ ...notificationSettings, [type]: value });
       } else {
         setNotificationSettings(notificationSettings);
         Alert.alert(
@@ -201,6 +199,33 @@ export default function ProfileScreen() {
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setConfirmationText("");
+  };
+
+  const handleEmailSupport = async () => {
+    const supportEmail = "zeenatlawal82@gmail.com";
+    const subject = "SickleMe Care+ Support Request";
+    const body = `Hi SickleMe Care+ Team,
+
+I need help with:
+[Please describe your issue or question here]
+
+Thank you!`;
+
+    const emailUrl = `mailto:${supportEmail}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    try {
+      const supported = await Linking.canOpenURL(emailUrl);
+      if (supported) {
+        await Linking.openURL(emailUrl);
+      }
+    } catch {
+      Alert.alert(
+        "Error",
+        "Unable to open email app. Please email us directly at: " + supportEmail
+      );
+    }
   };
 
   const handleFeedback = async () => {
@@ -509,31 +534,38 @@ export default function ProfileScreen() {
           </View> */}
         </CardWithTitle>
 
-        <Button
-          title="Share Feedback"
-          onPress={handleFeedback}
-          variant="secondary"
-          icon="feedback"
-          style={{ marginBottom: 10 }}
-        />
+        <CardWithTitle title="Help & Support">
+          <Button
+            title="Get Support"
+            onPress={handleEmailSupport}
+            variant="secondary"
+            icon="help-outline"
+            style={{ marginBottom: 12 }}
+          />
+          <Button
+            title="Share Feedback"
+            onPress={handleFeedback}
+            variant="secondary"
+            icon="feedback"
+            style={{ marginBottom: 12 }}
+          />
+          <Button
+            title="View App Tutorial"
+            onPress={handleViewOnboarding}
+            variant="secondary"
+            icon="school"
+          />
+        </CardWithTitle>
 
-        <Button
-          title="View App Onboarding"
-          onPress={handleViewOnboarding}
-          variant="secondary"
-          icon="help"
-          style={{ marginBottom: 10 }}
-        />
+        <CardWithTitle title="Account">
+          <Button
+            title="Logout"
+            onPress={handleLogout}
+            variant="danger"
+            icon="logout"
+            style={{ marginBottom: 12 }}
+          />
 
-        <Button
-          title="Logout"
-          onPress={handleLogout}
-          variant="danger"
-          icon="logout"
-          style={{ marginBottom: 10 }}
-        />
-
-        <CardWithTitle title="Danger Zone">
           <Button
             title="Delete Account"
             onPress={() => setShowDeleteModal(true)}
