@@ -6,7 +6,11 @@ import {
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/utils/context/AuthProvider";
-import { collectMLData } from "@/utils/ml/dataCollector";
+import {
+  collectMLData,
+  getAvailableTimePeriods,
+  TimePeriod,
+} from "@/utils/ml/dataCollector";
 import type { CrisisPrediction } from "@/utils/ml/randomForestPredictor";
 import { randomForestPredictor } from "@/utils/ml/randomForestPredictor";
 import { getRiskColor, getRiskIcon } from "@/utils/weather/weatherUtils";
@@ -14,6 +18,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -23,13 +28,32 @@ import {
 export default function InsightsScreen() {
   const [prediction, setPrediction] = useState<CrisisPrediction | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("week");
+  const [availablePeriods, setAvailablePeriods] = useState<
+    {
+      id: string;
+      label: string;
+    }[]
+  >([]);
+  const { user, userProfile } = useAuth();
+
+  const showMedicalDisclaimer = () => {
+    Alert.alert(
+      "Medical Disclaimer",
+      "This prediction system is designed to support your health management and does not replace professional medical advice.\n\n" +
+        "• Always consult your healthcare provider for medical decisions\n" +
+        "• Seek immediate medical attention for severe symptoms\n" +
+        "• This tool provides risk estimates based on your tracked data\n" +
+        "• Predictions are not a substitute for regular medical check-ups\n\n" +
+        "For medical emergencies, call your local emergency services immediately"
+    );
+  };
 
   const loadCrisisPrediction = useCallback(async () => {
     try {
       setLoading(true);
 
-      const mlData = await collectMLData(user!.uid);
+      const mlData = await collectMLData(user!.uid, selectedPeriod);
 
       const riskPrediction = randomForestPredictor.predictCrisisRisk(mlData);
 
@@ -51,25 +75,77 @@ export default function InsightsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, selectedPeriod]);
 
   useEffect(() => {
-    if (user) {
+    if (user && userProfile) {
       loadCrisisPrediction();
+
+      const periods = getAvailableTimePeriods(userProfile.createdAt);
+      setAvailablePeriods(periods);
+
+      if (periods.length > 0) {
+        setSelectedPeriod(periods[0].id as TimePeriod);
+      }
     }
-  }, [user, loadCrisisPrediction]);
+  }, [user, userProfile, loadCrisisPrediction]);
 
   return (
     <ScreenWrapper>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Health Insights</Text>
-          <Text style={styles.subtitle}>Crisis risk prediction & analysis</Text>
+        <View style={styles.titleContainer}>
+          <View>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>Health Insights</Text>
+              <TouchableOpacity onPress={showMedicalDisclaimer}>
+                <MaterialIcons
+                  name="info-outline"
+                  size={22}
+                  color={Colors.primary}
+                />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.subtitle}>
+              Crisis risk prediction & analysis
+            </Text>
+          </View>
         </View>
         <TouchableOpacity onPress={loadCrisisPrediction} disabled={loading}>
           <MaterialIcons name="refresh" size={24} color={Colors.primary} />
         </TouchableOpacity>
       </View>
+
+      <CardWithTitle title="Time Range">
+        <Text style={styles.description}>
+          {availablePeriods.length === 1
+            ? "Data analysis for available period"
+            : "Choose the range for health data analysis"}
+        </Text>
+        <View style={styles.periodButtons}>
+          {availablePeriods.map((period) => (
+            <TouchableOpacity
+              key={period.id}
+              style={[
+                styles.periodButton,
+                selectedPeriod === period.id && styles.selectedButton,
+                loading && styles.disabledButton,
+              ]}
+              onPress={() => setSelectedPeriod(period.id as TimePeriod)}
+              disabled={loading}
+            >
+              <Text
+                style={[
+                  styles.periodText,
+                  selectedPeriod === period.id && styles.selectedText,
+                  loading && styles.disabledText,
+                ]}
+              >
+                {period.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </CardWithTitle>
 
       {loading && (
         <BaseCard>
@@ -101,7 +177,21 @@ export default function InsightsScreen() {
             >
               {prediction.riskScore}%
             </Text>
-            <Text style={styles.scoreSubtext}>risk in next 7 days</Text>
+          </View>
+          <View style={styles.analysisInfo}>
+            <MaterialIcons
+              name="info-outline"
+              size={16}
+              color={Colors.gray500}
+            />
+            <Text style={styles.analysisText}>
+              Analysis period:{" "}
+              {selectedPeriod === "week"
+                ? "Last 7 Days"
+                : selectedPeriod === "month"
+                ? "Last 30 Days"
+                : "Last 90 Days"}
+            </Text>
           </View>
         </BaseCard>
       )}
@@ -129,9 +219,7 @@ export default function InsightsScreen() {
                   color={Colors.primary}
                 />
                 <Text style={styles.triggerName}>{value.factor}</Text>
-                <Text style={styles.triggerImportance}>
-                  {Math.round(value.importance * 100)}%
-                </Text>
+                <Text style={styles.triggerImportance}>{value.value}</Text>
               </View>
               <Text style={styles.triggerRecommendation}>
                 {value.recommendation}
@@ -148,18 +236,29 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     color: Colors.text,
-    marginBottom: 5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.gray600,
+    marginTop: 2,
   },
   loadingContainer: {
     alignItems: "center",
@@ -189,10 +288,62 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: "bold",
   },
-  scoreSubtext: {
+  analysisInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray200,
+  },
+  analysisText: {
+    fontSize: 12,
+    color: Colors.gray500,
+    marginLeft: 6,
+  },
+  description: {
     fontSize: 14,
+    color: Colors.gray500,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  periodButtons: {
+    flexDirection: "row",
+    backgroundColor: Colors.gray100,
+    borderRadius: 12,
+    padding: 4,
+  },
+  periodButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedButton: {
+    backgroundColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  periodText: {
+    fontSize: 14,
+    fontWeight: "500",
     color: Colors.gray600,
-    marginTop: 5,
+  },
+  selectedText: {
+    color: Colors.white,
+    fontWeight: "600",
+  },
+  disabledText: {
+    color: Colors.gray400,
   },
   triggerItem: {
     marginBottom: 15,

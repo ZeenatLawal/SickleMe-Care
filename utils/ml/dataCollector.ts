@@ -12,6 +12,28 @@ export const timePeriods = [
   { id: "quarter", label: "90 Days" },
 ];
 
+export function getAvailableTimePeriods(userCreatedAt: any) {
+  const availablePeriods = [];
+
+  const daysSinceJoined = Math.floor(
+    (new Date().getTime() - userCreatedAt.toDate().getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (daysSinceJoined >= 1) {
+    availablePeriods.push(timePeriods[0]);
+  }
+
+  if (daysSinceJoined >= 7) {
+    availablePeriods.push(timePeriods[1]);
+  }
+
+  if (daysSinceJoined >= 30) {
+    availablePeriods.push(timePeriods[2]);
+  }
+  return availablePeriods.length > 0 ? availablePeriods : [timePeriods[0]];
+}
+
 function getTimePeriodDays(timePeriod: TimePeriod) {
   switch (timePeriod) {
     case "week":

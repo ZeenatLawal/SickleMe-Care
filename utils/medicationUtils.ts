@@ -100,6 +100,13 @@ export const calculateMedicationAdherence = async (
 
     // Calculate required and taken for each medication
     userMeds.forEach((med) => {
+      const medCreatedTime = (med.createdAt as any).toDate().getTime();
+
+      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      if (medCreatedTime > twentyFourHoursAgo) {
+        return;
+      }
+
       const requiredDoses = getRequiredDosesPerDay(med.frequency || "daily");
       const dosesTaken = Math.min(
         dosesCountMap.get(med.medicationId || "") || 0,
