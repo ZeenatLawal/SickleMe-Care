@@ -288,17 +288,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  buttonDisabled: {
-    backgroundColor: Colors.gray400,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  loginButtonText: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: "bold",
-    letterSpacing: 0.5,
-  },
   registerContainer: {
     flexDirection: "row",
     justifyContent: "center",

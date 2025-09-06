@@ -124,6 +124,16 @@ const Register = () => {
               onRightIconPress={() => setShowPassword(!showPassword)}
             />
 
+            {password.length > 0 &&
+              validatePassword(password).isValid === false && (
+                <View style={styles.passwordHint}>
+                  <Text style={styles.hintText}>
+                    Password must include: 8+ characters, uppercase, lowercase,
+                    number, and special character (@$!%*?&_)
+                  </Text>
+                </View>
+              )}
+
             <FormInput
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -256,5 +266,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 16,
     fontWeight: "bold",
+  },
+  passwordHint: {
+    backgroundColor: Colors.gray50,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  hintText: {
+    fontSize: 12,
+    color: Colors.gray600,
   },
 });

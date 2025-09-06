@@ -14,7 +14,7 @@ import {
 } from "react-native";
 
 import { deleteUserAccount } from "@/backend/auth";
-import { deleteUserData, updateUser } from "@/backend/users";
+import { updateUser } from "@/backend/users";
 import {
   Button,
   CardWithTitle,
@@ -162,21 +162,7 @@ export default function ProfileScreen() {
 
       await deleteUserAccount();
 
-      await deleteUserData(userProfile.userId);
-
-      Alert.alert(
-        "Account Deleted",
-        "Your account has been successfully deleted.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              closeDeleteModal();
-              router.replace("/(auth)/welcome");
-            },
-          },
-        ]
-      );
+      router.replace("/(auth)/welcome");
     } catch (error: any) {
       console.error("Delete account error:", error);
       Alert.alert(
@@ -717,12 +703,5 @@ const styles = StyleSheet.create({
     padding: 12,
     marginVertical: 15,
     fontSize: 16,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  modalButton: {
-    flex: 1,
   },
 });
