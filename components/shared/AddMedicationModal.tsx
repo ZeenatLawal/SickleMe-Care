@@ -22,7 +22,7 @@ interface AddMedicationModalProps {
   userId: string;
 }
 
-export default function AddMedicationModal({
+export function AddMedicationModal({
   visible,
   onClose,
   onMedicationAdded,

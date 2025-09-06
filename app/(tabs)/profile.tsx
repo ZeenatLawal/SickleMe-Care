@@ -5,7 +5,6 @@ import {
   Alert,
   Clipboard,
   Linking,
-  Modal,
   StyleSheet,
   Switch,
   Text,
@@ -14,10 +13,12 @@ import {
   View,
 } from "react-native";
 
-import { updateUser } from "@/backend/users";
+import { deleteUserAccount } from "@/backend/auth";
+import { deleteUserData, updateUser } from "@/backend/users";
 import {
   Button,
   CardWithTitle,
+  CustomModal,
   FormInput,
   ScreenWrapper,
 } from "@/components/shared";
@@ -149,8 +150,8 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = async () => {
-    if (confirmationText.toLowerCase() !== "delete my account") {
-      Alert.alert("Error", "Please type 'Delete my account' to confirm");
+    if (confirmationText !== "DELETE") {
+      Alert.alert("Error", "Please type 'DELETE' to confirm");
       return;
     }
 
@@ -158,11 +159,30 @@ export default function ProfileScreen() {
 
     try {
       setIsLoading(true);
-      // TODO: Implement deleteUserAccount function
-      setShowDeleteModal(false);
-      router.replace("/(auth)/welcome");
-    } catch {
-      Alert.alert("Error", "Failed to delete account. Please try again.");
+
+      await deleteUserAccount();
+
+      await deleteUserData(userProfile.userId);
+
+      Alert.alert(
+        "Account Deleted",
+        "Your account has been successfully deleted.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              closeDeleteModal();
+              router.replace("/(auth)/welcome");
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error("Delete account error:", error);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to delete account. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -190,6 +210,11 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setConfirmationText("");
   };
 
   const handleFeedback = async () => {
@@ -522,57 +547,50 @@ export default function ProfileScreen() {
           style={{ marginBottom: 10 }}
         />
 
-        {/*<CardWithTitle title="Danger Zone">
-           <Button
+        <CardWithTitle title="Danger Zone">
+          <Button
             title="Delete Account"
             onPress={() => setShowDeleteModal(true)}
             variant="danger"
             icon="delete"
-          /> 
-        </CardWithTitle>*/}
+          />
+        </CardWithTitle>
       </ScreenWrapper>
 
-      <Modal
+      <CustomModal
         visible={showDeleteModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
+        onClose={closeDeleteModal}
+        title="Delete Account"
+        showCloseButton={false}
+        actions={[
+          {
+            title: "Cancel",
+            onPress: closeDeleteModal,
+            variant: "secondary",
+          },
+          {
+            title: "Delete",
+            onPress: handleDeleteAccount,
+            variant: "danger",
+            loading: isLoading,
+          },
+        ]}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Account</Text>
-            <Text style={styles.modalText}>
-              This action cannot be undone. All your data will be permanently
-              deleted.
-            </Text>
-            <Text style={styles.modalText}>
-              Type &ldquo;Delete my account&rdquo; to confirm:
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              value={confirmationText}
-              onChangeText={setConfirmationText}
-              placeholder="Type here..."
-              autoCapitalize="none"
-            />
-            <View style={styles.modalButtons}>
-              <Button
-                title="Cancel"
-                onPress={() => setShowDeleteModal(false)}
-                variant="secondary"
-                style={styles.modalButton}
-              />
-              <Button
-                title="Delete"
-                onPress={handleDeleteAccount}
-                variant="danger"
-                loading={isLoading}
-                style={styles.modalButton}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+        <Text style={styles.modalText}>
+          This action cannot be undone. All your data will be permanently
+          deleted.
+        </Text>
+        <Text style={styles.modalText}>
+          Type &ldquo;DELETE&rdquo; to confirm:
+        </Text>
+        <TextInput
+          style={styles.modalInput}
+          value={confirmationText}
+          onChangeText={setConfirmationText}
+          placeholder="Type here..."
+          autoCapitalize="none"
+        />
+      </CustomModal>
     </>
   );
 }

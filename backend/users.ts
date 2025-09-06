@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { User } from "../types/user";
 import { db } from "./firebase";
 
@@ -18,4 +18,9 @@ export const getUserById = async (userId: string) => {
 export const updateUser = async (userId: string, updates: Partial<User>) => {
   const userRef = doc(db, COLLECTION_NAME, userId);
   await updateDoc(userRef, updates);
+};
+
+export const deleteUserData = async (userId: string) => {
+  const userRef = doc(db, COLLECTION_NAME, userId);
+  await deleteDoc(userRef);
 };

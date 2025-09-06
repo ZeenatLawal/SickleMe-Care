@@ -11,7 +11,7 @@ interface ScreenWrapperProps {
   style?: ViewStyle;
 }
 
-export default function ScreenWrapper({
+export function ScreenWrapper({
   children,
   scrollable = true,
   showsVerticalScrollIndicator = false,
