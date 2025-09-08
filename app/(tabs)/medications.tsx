@@ -8,8 +8,10 @@ import {
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/utils/context/AuthProvider";
+import { useNotifications } from "@/utils/context/NotificationProvider";
 import { getTodayDateString } from "@/utils/dateUtils";
 import { loadMedicationProgress, UIMedication } from "@/utils/medicationUtils";
+import { scheduleMedicationNotifications } from "@/utils/notifications";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -23,6 +25,7 @@ import {
 
 export default function MedicationsScreen() {
   const { userProfile } = useAuth();
+  const { isNotificationEnabled } = useNotifications();
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [medications, setMedications] = useState<UIMedication[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -46,6 +49,23 @@ export default function MedicationsScreen() {
       setIsLoading(false);
     }
   }, [userProfile?.userId, selectedDate]);
+
+  const rescheduleNotifications = useCallback(async () => {
+    if (!userProfile?.userId) return;
+
+    if (isNotificationEnabled("medication")) {
+      try {
+        await scheduleMedicationNotifications(userProfile.userId);
+      } catch (error) {
+        console.error("Error rescheduling medication notifications:", error);
+      }
+    }
+  }, [userProfile?.userId, isNotificationEnabled]);
+
+  const handleMeds = useCallback(async () => {
+    await loadMedications();
+    await rescheduleNotifications();
+  }, [loadMedications, rescheduleNotifications]);
 
   useEffect(() => {
     loadMedications();
@@ -106,7 +126,7 @@ export default function MedicationsScreen() {
             try {
               setDeletingId(id);
               await deleteMedication(id);
-              await loadMedications();
+              await handleMeds();
               Alert.alert("Success", "Medication deleted successfully!");
             } catch (error) {
               console.error("Error deleting medication:", error);
@@ -308,7 +328,7 @@ export default function MedicationsScreen() {
       <AddMedicationModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onMedicationAdded={loadMedications}
+        onMedicationAdded={handleMeds}
         userId={userProfile?.userId || ""}
       />
     </>

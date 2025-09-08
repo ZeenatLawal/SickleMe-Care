@@ -117,7 +117,7 @@ export function NotificationProvider({
 
     try {
       const success = enabled
-        ? await handler.schedule()
+        ? await handler.schedule(userProfile?.userId)
         : await handler.cancel();
 
       if (success) {
@@ -192,7 +192,7 @@ export function NotificationProvider({
       newStates[notificationType] = isScheduled;
 
       if (!isScheduled && isEnabledInSettings) {
-        const success = await handler.schedule();
+        const success = await handler.schedule(userProfile?.userId);
         if (success) {
           newStates[notificationType] = true;
         }

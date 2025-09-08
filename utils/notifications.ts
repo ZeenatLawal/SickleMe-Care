@@ -1,3 +1,4 @@
+import { getUserMedications } from "@/backend";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -215,35 +216,79 @@ export async function scheduleHydrationNotifications() {
   }
 }
 
-export async function scheduleMedicationNotifications() {
+const getNotificationTimes = (frequency: string) => {
+  switch (frequency) {
+    case "daily":
+      return [{ hour: 8, minute: 30 }];
+    case "twice-daily":
+      return [
+        { hour: 8, minute: 30 },
+        { hour: 20, minute: 30 },
+      ];
+    case "three-times-daily":
+      return [
+        { hour: 8, minute: 30 },
+        { hour: 14, minute: 30 },
+        { hour: 20, minute: 30 },
+      ];
+    default:
+      return [];
+  }
+};
+
+export async function scheduleMedicationNotifications(userId: string) {
   try {
+    const medications = await getUserMedications(userId);
+
     await cancelNotifications("medication-");
+
+    if (medications.length === 0) {
+      console.log("No medications found for user");
+      return false;
+    }
 
     const now = new Date();
     const notifications: any[] = [];
-    const medicationTimes = [8, 14, 20]; // 8am, 2pm, 8pm
+
+    const frequencies = [...new Set(medications.map((med) => med.frequency))];
+
+    const uniqueTimes = new Set<string>();
 
     for (let i = 0; i < 7; i++) {
-      for (const hour of medicationTimes) {
-        const notificationTime = new Date(now);
-        notificationTime.setDate(now.getDate() + i);
-        notificationTime.setHours(hour, 0, 0, 0);
+      for (const frequency of frequencies) {
+        const times = getNotificationTimes(frequency);
 
-        if (notificationTime > now) {
-          notifications.push({
-            identifier: `medication-${hour}h-day${i}`,
-            content: {
-              title: "Medication Reminder 💊",
-              body: "Time to take your medications. Consistency helps manage your condition.",
-              data: { type: "medication-reminder", hour },
-            },
-            trigger: {
-              type: Notifications.SchedulableTriggerInputTypes.DATE,
-              date: notificationTime,
-            },
-          });
+        for (const time of times) {
+          const timeKey = `${time.hour}${time.minute}`;
+
+          if (uniqueTimes.has(timeKey)) continue;
+          uniqueTimes.add(timeKey);
+
+          const notificationTime = new Date(now);
+          notificationTime.setDate(now.getDate() + i);
+          notificationTime.setHours(time.hour, time.minute, 0, 0);
+
+          if (notificationTime > now) {
+            notifications.push({
+              identifier: `medication-${time.hour}${time.minute}-day${i}`,
+              content: {
+                title: "Medication Reminder 💊",
+                body: "Time to take your medications. Consistency helps manage your condition.",
+                data: {
+                  type: "medication-reminder",
+                  hour: time.hour,
+                  minute: time.minute,
+                },
+              },
+              trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: notificationTime,
+              },
+            });
+          }
         }
       }
+      uniqueTimes.clear();
     }
 
     if (notifications.length > 0) {
@@ -270,22 +315,23 @@ export async function scheduleMedicationNotifications() {
  */
 export const NotificationHandlers = {
   daily: {
-    schedule: scheduleDailyNotifications,
+    schedule: (userId?: string) => scheduleDailyNotifications(),
     cancel: () => cancelNotifications("daily-"),
     check: () => areNotificationsScheduled("daily-"),
   },
   hydration: {
-    schedule: scheduleHydrationNotifications,
+    schedule: (userId?: string) => scheduleHydrationNotifications(),
     cancel: () => cancelNotifications("hydration-"),
     check: () => areNotificationsScheduled("hydration-"),
   },
   medication: {
-    schedule: scheduleMedicationNotifications,
+    schedule: (userId?: string) =>
+      scheduleMedicationNotifications(userId || ""),
     cancel: () => cancelNotifications("medication-"),
     check: () => areNotificationsScheduled("medication-"),
   },
   insights: {
-    schedule: async () => {
+    schedule: async (userId?: string) => {
       console.log("Insights notifications not yet implemented");
       return false;
     },
