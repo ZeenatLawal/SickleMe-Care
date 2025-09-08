@@ -79,7 +79,7 @@ function getTopRiskFactors(data: SimplifiedPatientData) {
       value: `${data.medicationAdherence}%`,
       recommendation:
         data.medicationAdherence < 80
-          ? "Improve medication schedule - set daily reminders"
+          ? "Improve medication schedule"
           : "Continue excellent medication adherence",
     },
     {
@@ -131,7 +131,8 @@ function createDecisionTree(featureCount: number) {
     "weatherRisk",
     "stressLevel",
   ];
-  const featureSubset = selectRandomFeatures(allFeatures, featureCount);
+  const shuffled = [...allFeatures].sort(() => Math.random() - 0.5);
+  const featureSubset = shuffled.slice(0, featureCount);
 
   return {
     predict: (data: SimplifiedPatientData): number => {
@@ -184,11 +185,6 @@ function createDecisionTree(featureCount: number) {
       return Math.min(100, Math.max(0, risk));
     },
   };
-}
-
-function selectRandomFeatures(features: string[], count: number) {
-  const shuffled = [...features].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
 }
 
 export const randomForestPredictor = {

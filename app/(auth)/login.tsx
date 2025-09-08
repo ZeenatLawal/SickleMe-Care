@@ -1,5 +1,10 @@
-import { loginWithEmail } from "@/backend/auth";
-import { Button, FormInput, ScreenWrapper } from "@/components/shared";
+import { loginWithEmail, sendPasswordReset } from "@/backend/auth";
+import {
+  Button,
+  CustomModal,
+  FormInput,
+  ScreenWrapper,
+} from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -19,6 +24,9 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -45,6 +53,49 @@ const LoginScreen = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    setForgotPasswordEmail(email);
+    setShowModal(true);
+  };
+
+  const handleSendPasswordReset = async () => {
+    if (!forgotPasswordEmail) {
+      Alert.alert("Error", "Please enter your email address");
+      return;
+    }
+
+    setIsSendingReset(true);
+
+    try {
+      await sendPasswordReset(forgotPasswordEmail.trim().toLowerCase());
+      Alert.alert(
+        "Password Reset",
+        "If an account with this email exists, you will receive a password reset link shortly.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setShowModal(false);
+              setForgotPasswordEmail("");
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.message || "Failed to send password reset email."
+      );
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  const closeForgotModal = () => {
+    setShowModal(false);
+    setForgotPasswordEmail("");
   };
 
   return (
@@ -89,7 +140,10 @@ const LoginScreen = () => {
               onRightIconPress={() => setShowPassword(!showPassword)}
             />
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity
+              style={styles.forgotPassword}
+              onPress={handleForgotPassword}
+            >
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
@@ -110,6 +164,38 @@ const LoginScreen = () => {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <CustomModal
+        visible={showModal}
+        onClose={closeForgotModal}
+        title="Reset Password"
+        actions={[
+          {
+            title: "Cancel",
+            onPress: closeForgotModal,
+            variant: "secondary",
+          },
+          {
+            title: "Send Reset Link",
+            onPress: handleSendPasswordReset,
+            variant: "primary",
+            loading: isSendingReset,
+          },
+        ]}
+      >
+        <Text style={styles.modalText}>
+          Enter your email address and a link to reset your password will be
+          sent to you.
+        </Text>
+
+        <FormInput
+          value={forgotPasswordEmail}
+          onChangeText={setForgotPasswordEmail}
+          placeholder="Email address"
+          keyboardType="email-address"
+          leftIcon="email"
+        />
+      </CustomModal>
     </ScreenWrapper>
   );
 };
@@ -202,17 +288,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  buttonDisabled: {
-    backgroundColor: Colors.gray400,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  loginButtonText: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: "bold",
-    letterSpacing: 0.5,
-  },
   registerContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -226,5 +301,12 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 16,
     fontWeight: "bold",
+  },
+  modalText: {
+    fontSize: 16,
+    color: Colors.gray600,
+    marginBottom: 20,
+    textAlign: "center",
+    lineHeight: 22,
   },
 });

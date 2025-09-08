@@ -1,97 +1,115 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
-  Modal,
+  Clipboard,
+  Linking,
   StyleSheet,
   Switch,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 
+import { deleteUserAccount } from "@/backend/auth";
 import { updateUser } from "@/backend/users";
 import {
   Button,
   CardWithTitle,
+  CustomModal,
   FormInput,
   ScreenWrapper,
 } from "@/components/shared";
 import Logo from "@/components/ui/Logo";
 import { Colors } from "@/constants/Colors";
+import { BloodType, SickleCellType } from "@/types";
+import { NotificationType } from "@/types/user";
 import { useAuth } from "@/utils/context/AuthProvider";
 import { useNotifications } from "@/utils/context/NotificationProvider";
+import { useOnboarding } from "@/utils/context/OnboardingProvider";
 
 export default function ProfileScreen() {
   const { userProfile, logout } = useAuth();
-  const {
-    dailyNotificationsEnabled,
-    enableDailyNotifications,
-    disableDailyNotifications,
-  } = useNotifications();
+  const { toggleNotification, isNotificationEnabled } = useNotifications();
+  const { resetOnboarding } = useOnboarding();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
 
+  const [notificationSettings, setNotificationSettings] = useState({
+    daily: isNotificationEnabled("daily"),
+    medication: isNotificationEnabled("medication"),
+    hydration: isNotificationEnabled("hydration"),
+    insights: isNotificationEnabled("insights"),
+  });
+
+  useEffect(() => {
+    setNotificationSettings({
+      daily: isNotificationEnabled("daily"),
+      medication: isNotificationEnabled("medication"),
+      hydration: isNotificationEnabled("hydration"),
+      insights: isNotificationEnabled("insights"),
+    });
+  }, [userProfile, isNotificationEnabled]);
+
+  const bloodTypes: BloodType[] = [
+    "A+",
+    "A-",
+    "B+",
+    "B-",
+    "AB+",
+    "AB-",
+    "O+",
+    "O-",
+  ];
+  const sickleCellTypes: SickleCellType[] = ["SS", "SC", "SB+", "SB0", "other"];
+
   const [profileData, setProfileData] = useState({
     name: userProfile?.name || "",
     email: userProfile?.email || "",
     dateOfBirth: userProfile?.profile?.dateOfBirth || "",
+    phoneNumber: userProfile?.profile?.phoneNumber || "",
+    bloodType: userProfile?.profile?.bloodType || "",
+    sickleCellType: userProfile?.profile?.sickleCellType || "",
     emergencyContactName: userProfile?.profile?.emergencyContact?.name || "",
     emergencyContactPhone:
       userProfile?.profile?.emergencyContact?.phoneNumber || "",
     emergencyContactRelationship:
       userProfile?.profile?.emergencyContact?.relationship || "",
-    notifications: userProfile?.notifications ?? true,
   });
 
-  const handleNotificationToggle = async (value: boolean) => {
-    setProfileData({ ...profileData, notifications: value });
-
+  const handleNotificationToggle = async (
+    type: NotificationType,
+    value: boolean
+  ) => {
     try {
-      if (value) {
-        const success = await enableDailyNotifications();
-        if (success) {
-          if (userProfile?.userId) {
-            await updateUser(userProfile.userId, { notifications: true });
-          }
-          Alert.alert(
-            "Notifications Enabled",
-            "You will receive daily reminders at 8 AM and 8 PM to help you track your health."
-          );
-        } else {
-          Alert.alert(
-            "Error",
-            "Failed to enable notifications. Please try again."
-          );
-          setProfileData({ ...profileData, notifications: false });
-        }
+      const success = await toggleNotification(type, value);
+
+      if (success) {
+        Alert.alert(
+          "Settings Updated",
+          `${type} notifications ${value ? "enabled" : "disabled"}`
+        );
+        setNotificationSettings({ ...notificationSettings, [type]: value });
       } else {
-        const success = await disableDailyNotifications();
-        if (success) {
-          if (userProfile?.userId) {
-            await updateUser(userProfile.userId, { notifications: false });
-          }
-          Alert.alert(
-            "Notifications Disabled",
-            "Daily health reminders have been turned off."
-          );
-        } else {
-          Alert.alert(
-            "Error",
-            "Failed to disable notifications. Please try again."
-          );
-          setProfileData({ ...profileData, notifications: true });
-        }
+        setNotificationSettings(notificationSettings);
+        Alert.alert(
+          "Error",
+          `Failed to ${
+            value ? "enable" : "disable"
+          } ${type} notifications. Please try again.`
+        );
       }
     } catch (error) {
-      console.error("Error toggling notifications:", error);
+      console.error(`Error toggling ${type} notifications:`, error);
+      setNotificationSettings(notificationSettings);
       Alert.alert(
         "Error",
-        "An error occurred while updating notification settings."
+        `Failed to update ${type} notification settings. Please try again.`
       );
-      setProfileData({ ...profileData, notifications: !value });
     }
   };
 
@@ -105,13 +123,16 @@ export default function ProfileScreen() {
         profile: {
           ...userProfile.profile,
           dateOfBirth: profileData.dateOfBirth,
+          phoneNumber: profileData.phoneNumber || null,
+          bloodType: (profileData.bloodType as BloodType) || null,
+          sickleCellType:
+            (profileData.sickleCellType as SickleCellType) || null,
           emergencyContact: {
             name: profileData.emergencyContactName,
             phoneNumber: profileData.emergencyContactPhone,
             relationship: profileData.emergencyContactRelationship,
           },
         },
-        notifications: profileData.notifications,
       };
 
       await updateUser(userProfile.userId, updates);
@@ -127,8 +148,8 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = async () => {
-    if (confirmationText.toLowerCase() !== "delete my account") {
-      Alert.alert("Error", "Please type 'Delete my account' to confirm");
+    if (confirmationText !== "DELETE") {
+      Alert.alert("Error", "Please type 'DELETE' to confirm");
       return;
     }
 
@@ -136,11 +157,16 @@ export default function ProfileScreen() {
 
     try {
       setIsLoading(true);
-      // TODO: Implement deleteUserAccount function
-      setShowDeleteModal(false);
+
+      await deleteUserAccount();
+
       router.replace("/(auth)/welcome");
-    } catch {
-      Alert.alert("Error", "Failed to delete account. Please try again.");
+    } catch (error: any) {
+      console.error("Delete account error:", error);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to delete account. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -170,23 +196,114 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setConfirmationText("");
+  };
+
+  const handleEmailSupport = async () => {
+    const supportEmail = "zeenatlawal82@gmail.com";
+    const subject = "SickleMe Care+ Support Request";
+    const body = `Hi SickleMe Care+ Team,
+
+I need help with:
+[Please describe your issue or question here]
+
+Thank you!`;
+
+    const emailUrl = `mailto:${supportEmail}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    try {
+      const supported = await Linking.canOpenURL(emailUrl);
+      if (supported) {
+        await Linking.openURL(emailUrl);
+      }
+    } catch {
+      Alert.alert(
+        "Error",
+        "Unable to open email app. Please email us directly at: " + supportEmail
+      );
+    }
+  };
+
+  const handleFeedback = async () => {
+    const feedbackUrl =
+      "https://app.onlinesurveys.jisc.ac.uk/s/northampton/sickleme-care-post-study";
+
+    try {
+      const supported = await Linking.canOpenURL(feedbackUrl);
+      if (supported) {
+        await Linking.openURL(feedbackUrl);
+      } else {
+        Alert.alert(
+          "Cannot Open Link",
+          "Unable to open the feedback survey automatically. Would you like to copy the link?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Copy Link",
+              onPress: async () => {
+                try {
+                  Clipboard.setString(feedbackUrl);
+                  Alert.alert(
+                    "Link Copied",
+                    "The feedback survey link has been copied to your clipboard. You can now paste it in your browser."
+                  );
+                } catch {
+                  Alert.alert(
+                    "Copy Failed",
+                    "Unable to copy the link. Please manually copy this URL:\n\n" +
+                      feedbackUrl
+                  );
+                }
+              },
+            },
+          ]
+        );
+      }
+    } catch {
+      Alert.alert(
+        "Error",
+        "Failed to open feedback survey. Please try again later."
+      );
+    }
+  };
+
+  const handleViewOnboarding = async () => {
+    await resetOnboarding();
+    router.push("/(auth)/onboarding");
+  };
+
   return (
     <>
       <ScreenWrapper>
         <View style={styles.header}>
           <Logo size={80} />
-          <Text style={styles.title}>My Profile</Text>
-          <Text style={styles.subtitle}>Manage your health information</Text>
+          <View style={styles.titleContainer}>
+            <View>
+              <Text style={styles.title}>My Profile</Text>
+              <Text style={styles.subtitle}>
+                Manage your health information
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
+              style={styles.editIcon}
+              disabled={isLoading}
+            >
+              <MaterialIcons
+                name={isEditing ? "save" : "edit"}
+                size={24}
+                color={Colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <Button
-          title={isEditing ? "Save Changes" : "Edit Profile"}
-          onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
-          variant="primary"
-          icon={isEditing ? "save" : "edit"}
-          loading={isLoading}
-          style={styles.editButton}
-        />
 
         <CardWithTitle title="Basic Information">
           <FormInput
@@ -215,6 +332,89 @@ export default function ProfileScreen() {
             editable={isEditing}
             placeholder="YYYY-MM-DD"
           />
+
+          <FormInput
+            label="Phone Number"
+            value={profileData.phoneNumber}
+            onChangeText={(text) =>
+              setProfileData({ ...profileData, phoneNumber: text })
+            }
+            editable={isEditing}
+            placeholder="Your phone number"
+            keyboardType="phone-pad"
+          />
+        </CardWithTitle>
+
+        <CardWithTitle title="Medical Information">
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Blood Type</Text>
+            {isEditing ? (
+              <View style={styles.dropdownContainer}>
+                {bloodTypes.map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.dropdownItem,
+                      profileData.bloodType === type &&
+                        styles.dropdownItemSelected,
+                    ]}
+                    onPress={() =>
+                      setProfileData({ ...profileData, bloodType: type })
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        profileData.bloodType === type &&
+                          styles.dropdownTextSelected,
+                      ]}
+                    >
+                      {type}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.displayValue}>
+                {profileData.bloodType || "Not specified"}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Sickle Cell Type</Text>
+            {isEditing ? (
+              <View style={styles.dropdownContainer}>
+                {sickleCellTypes.map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.dropdownItem,
+                      profileData.sickleCellType === type &&
+                        styles.dropdownItemSelected,
+                    ]}
+                    onPress={() =>
+                      setProfileData({ ...profileData, sickleCellType: type })
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        profileData.sickleCellType === type &&
+                          styles.dropdownTextSelected,
+                      ]}
+                    >
+                      {type.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.displayValue}>
+                {profileData.sickleCellType?.toUpperCase() || "Not specified"}
+              </Text>
+            )}
+          </View>
         </CardWithTitle>
 
         <CardWithTitle title="Emergency Contact">
@@ -258,28 +458,114 @@ export default function ProfileScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.switchLabel}>Daily Health Reminders</Text>
               <Text style={styles.switchDescription}>
-                Get reminded to track your health at 8 AM and 8 PM daily
+                Get reminded to track your health daily
               </Text>
             </View>
             <Switch
-              value={dailyNotificationsEnabled}
-              onValueChange={handleNotificationToggle}
+              value={notificationSettings.daily}
+              onValueChange={(value) =>
+                handleNotificationToggle("daily", value)
+              }
               trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
               thumbColor={
-                dailyNotificationsEnabled ? Colors.primary : Colors.gray400
+                notificationSettings.daily ? Colors.primary : Colors.gray400
               }
             />
           </View>
+
+          <View style={styles.switchContainer}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchLabel}>Medication Reminders</Text>
+              <Text style={styles.switchDescription}>
+                Get notified when it&apos;s time to take your medications
+              </Text>
+            </View>
+            <Switch
+              value={notificationSettings.medication}
+              onValueChange={(value) =>
+                handleNotificationToggle("medication", value)
+              }
+              trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
+              thumbColor={
+                notificationSettings.medication
+                  ? Colors.primary
+                  : Colors.gray400
+              }
+            />
+          </View>
+
+          <View style={styles.switchContainer}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchLabel}>Hydration Reminders</Text>
+              <Text style={styles.switchDescription}>
+                Get reminded to stay hydrated throughout the day
+              </Text>
+            </View>
+            <Switch
+              value={notificationSettings.hydration}
+              onValueChange={(value) =>
+                handleNotificationToggle("hydration", value)
+              }
+              trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
+              thumbColor={
+                notificationSettings.hydration ? Colors.primary : Colors.gray400
+              }
+            />
+          </View>
+
+          {/* <View style={styles.switchContainer}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchLabel}>Insights & Recommendations</Text>
+              <Text style={styles.switchDescription}>
+                Receive personalized health insights and tips
+              </Text>
+            </View>
+            <Switch
+              value={notificationSettings.insights}
+              onValueChange={(value) =>
+                handleNotificationToggle("insights", value)
+              }
+              trackColor={{ false: Colors.gray300, true: Colors.primaryLight }}
+              thumbColor={
+                notificationSettings.insights ? Colors.primary : Colors.gray400
+              }
+              disabled={true} // TODO: Implement insights notifications
+            />
+          </View> */}
         </CardWithTitle>
 
-        <CardWithTitle title="Danger Zone">
+        <CardWithTitle title="Help & Support">
+          <Button
+            title="Get Support"
+            onPress={handleEmailSupport}
+            variant="secondary"
+            icon="help-outline"
+            style={{ marginBottom: 12 }}
+          />
+          <Button
+            title="Share Feedback"
+            onPress={handleFeedback}
+            variant="secondary"
+            icon="feedback"
+            style={{ marginBottom: 12 }}
+          />
+          <Button
+            title="View App Tutorial"
+            onPress={handleViewOnboarding}
+            variant="secondary"
+            icon="school"
+          />
+        </CardWithTitle>
+
+        <CardWithTitle title="Account">
           <Button
             title="Logout"
             onPress={handleLogout}
-            variant="secondary"
+            variant="danger"
             icon="logout"
-            style={{ marginBottom: 10 }}
+            style={{ marginBottom: 12 }}
           />
+
           <Button
             title="Delete Account"
             onPress={() => setShowDeleteModal(true)}
@@ -289,47 +575,40 @@ export default function ProfileScreen() {
         </CardWithTitle>
       </ScreenWrapper>
 
-      <Modal
+      <CustomModal
         visible={showDeleteModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
+        onClose={closeDeleteModal}
+        title="Delete Account"
+        showCloseButton={false}
+        actions={[
+          {
+            title: "Cancel",
+            onPress: closeDeleteModal,
+            variant: "secondary",
+          },
+          {
+            title: "Delete",
+            onPress: handleDeleteAccount,
+            variant: "danger",
+            loading: isLoading,
+          },
+        ]}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Account</Text>
-            <Text style={styles.modalText}>
-              This action cannot be undone. All your data will be permanently
-              deleted.
-            </Text>
-            <Text style={styles.modalText}>
-              Type &ldquo;Delete my account&rdquo; to confirm:
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              value={confirmationText}
-              onChangeText={setConfirmationText}
-              placeholder="Type here..."
-              autoCapitalize="none"
-            />
-            <View style={styles.modalButtons}>
-              <Button
-                title="Cancel"
-                onPress={() => setShowDeleteModal(false)}
-                variant="secondary"
-                style={styles.modalButton}
-              />
-              <Button
-                title="Delete"
-                onPress={handleDeleteAccount}
-                variant="danger"
-                loading={isLoading}
-                style={styles.modalButton}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+        <Text style={styles.modalText}>
+          This action cannot be undone. All your data will be permanently
+          deleted.
+        </Text>
+        <Text style={styles.modalText}>
+          Type &ldquo;DELETE&rdquo; to confirm:
+        </Text>
+        <TextInput
+          style={styles.modalInput}
+          value={confirmationText}
+          onChangeText={setConfirmationText}
+          placeholder="Type here..."
+          autoCapitalize="none"
+        />
+      </CustomModal>
     </>
   );
 }
@@ -339,19 +618,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 30,
   },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 30,
+    marginTop: 10,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: Colors.text,
-    marginTop: 10,
+  },
+  editIcon: {
+    padding: 4,
   },
   subtitle: {
     fontSize: 16,
     color: Colors.gray600,
     marginTop: 5,
-  },
-  editButton: {
-    marginBottom: 20,
   },
   switchContainer: {
     flexDirection: "row",
@@ -368,6 +653,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.gray600,
     marginTop: 2,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  dropdownContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    backgroundColor: Colors.white,
+  },
+  dropdownItemSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: Colors.text,
+    fontWeight: "500",
+  },
+  dropdownTextSelected: {
+    color: Colors.white,
+  },
+  displayValue: {
+    fontSize: 16,
+    color: Colors.text,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.gray100,
+    borderRadius: 8,
   },
   permissionText: {
     fontSize: 12,
@@ -408,12 +735,5 @@ const styles = StyleSheet.create({
     padding: 12,
     marginVertical: 15,
     fontSize: 16,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  modalButton: {
-    flex: 1,
   },
 });

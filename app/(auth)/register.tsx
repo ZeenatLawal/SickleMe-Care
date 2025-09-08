@@ -1,7 +1,7 @@
 import { registerUser } from "@/backend/auth";
 import { Button, FormInput, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
-import { validatePassword } from "@/utils/validatePassword";
+import { validateEmail, validatePassword } from "@/utils/validate";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -30,13 +30,20 @@ const Register = () => {
       return;
     }
 
+    const isEmailValid = validateEmail(email);
+    if (!isEmailValid.isValid) {
+      Alert.alert("Error", isEmailValid.error);
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
       return;
     }
 
-    if (!validatePassword(password)) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+    const isPasswordValid = validatePassword(password);
+    if (!isPasswordValid.isValid) {
+      Alert.alert("Error", isPasswordValid.error);
       return;
     }
 
@@ -116,6 +123,16 @@ const Register = () => {
               rightIcon={showPassword ? "visibility" : "visibility-off"}
               onRightIconPress={() => setShowPassword(!showPassword)}
             />
+
+            {password.length > 0 &&
+              validatePassword(password).isValid === false && (
+                <View style={styles.passwordHint}>
+                  <Text style={styles.hintText}>
+                    Password must include: 8+ characters, uppercase, lowercase,
+                    number, and special character (@$!%*?&_)
+                  </Text>
+                </View>
+              )}
 
             <FormInput
               value={confirmPassword}
@@ -249,5 +266,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 16,
     fontWeight: "bold",
+  },
+  passwordHint: {
+    backgroundColor: Colors.gray50,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  hintText: {
+    fontSize: 12,
+    color: Colors.gray600,
   },
 });

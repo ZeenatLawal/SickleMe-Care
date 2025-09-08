@@ -15,20 +15,21 @@ import { db } from "./firebase";
 const COLLECTION_NAME = "pain_entries";
 
 /**
- * Create or update pain entry for today
+ * Create or update pain entry
  */
 export const createPainEntry = async (
   userId: string,
   painLevel: number,
   location: PainLocation[],
-  description?: string
+  description?: string,
+  date?: string
 ) => {
-  const today = getTodayDateString();
+  const entryDate = date || getTodayDateString();
 
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", "==", today)
+    where("date", "==", entryDate)
   );
 
   const querySnapshot = await getDocs(q);
@@ -51,7 +52,7 @@ export const createPainEntry = async (
       location,
       description,
       createdAt: serverTimestamp(),
-      date: today,
+      date: entryDate,
     };
 
     const docRef = await addDoc(collection(db, COLLECTION_NAME), painData);

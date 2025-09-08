@@ -80,20 +80,32 @@ export const deleteMedication = async (medicationId: string) => {
   });
 };
 
+export const updateMedication = async (
+  medicationId: string,
+  updates: Partial<Medication>
+) => {
+  const docRef = doc(db, MEDICATIONS_COLLECTION, medicationId);
+  await updateDoc(docRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  });
+};
+
 /**
  * Record medication intake
  */
 export const recordMedicationIntake = async (
   userId: string,
-  medicationId: string
+  medicationId: string,
+  date?: string
 ) => {
-  const today = getTodayDateString();
+  const entryDate = date || getTodayDateString();
 
   const intakeData: Omit<MedicationIntake, "intakeId"> = {
     userId,
     medicationId,
     takenAt: serverTimestamp(),
-    date: today,
+    date: entryDate,
     createdAt: serverTimestamp(),
   };
 

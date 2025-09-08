@@ -71,14 +71,6 @@
     "icon": "people",
     "url": "https://sicklecelldisease.org/"
   },
-  "sickle-cell-society-uk": {
-    "title": "Sickle Cell Society (UK)",
-    "description": "UK's leading sickle cell charity providing support and information",
-    "category": "support",
-    "type": "external",
-    "icon": "people",
-    "url": "https://www.sicklecellsociety.org/"
-  },
   "nhs-sickle-cell": {
     "title": "NHS Sickle Cell Information",
     "description": "Official NHS guidance on sickle cell disease",
@@ -87,14 +79,6 @@
     "icon": "medical",
     "url": "https://www.nhs.uk/conditions/sickle-cell-disease/"
   },
-  "sickle-cell-foundation-nigeria": {
-    "title": "Sickle Cell Foundation Nigeria",
-    "description": "Nigeria's premier organization for sickle cell awareness and support",
-    "category": "support",
-    "type": "external",
-    "icon": "people",
-    "url": "https://www.sicklecellFoundation.com/"
-  },
   "nhlbi-scd": {
     "title": "NHLBI Sickle Cell Information",
     "description": "National Heart, Lung, and Blood Institute resources",
@@ -102,5 +86,13 @@
     "type": "external",
     "icon": "library",
     "url": "https://www.nhlbi.nih.gov/health/sickle-cell-disease"
+  },
+  "global-support-communities": {
+    "title": "Global SCD Support Communities",
+    "description": "Worldwide sickle cell foundations and support organizations by country",
+    "category": "support",
+    "type": "article",
+    "icon": "globe",
+    "content": "Connect with sickle cell disease support communities and foundations around the world. These organizations provide resources, advocacy, and community support.\n\n🇺🇸 UNITED STATES:\n• Sickle Cell Disease Association of America - https://www.sicklecelldisease.org/\n\n🇬🇧 UNITED KINGDOM:\n• Sickle Cell Society - https://www.sicklecellsociety.org/\n• NHS Sickle Cell & Thalassaemia Screening - https://www.gov.uk/topic/population-screening-programmes\n\n🇳🇬 NIGERIA:\n• Sickle Cell Foundation Nigeria - https://www.sicklecellfoundation.com/\n\n Tip: Contact your local health ministry or hospital for additional regional support groups and resources."
   }
 }

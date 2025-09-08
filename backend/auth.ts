@@ -1,5 +1,7 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -38,6 +40,12 @@ export const loginWithEmail = async (email: string, password: string) => {
       case "auth/too-many-requests":
         errorMessage = "Too many failed attempts. Please try again later.";
         break;
+      case "auth/network-request-failed":
+        errorMessage = "Network error. Please check your internet connection.";
+        break;
+      case "auth/invalid-credential":
+        errorMessage = "Invalid email or password.";
+        break;
     }
 
     throw new Error(errorMessage);
@@ -74,7 +82,12 @@ export const registerUser = async (
           relationship: null,
         },
       },
-      notifications: false,
+      notificationSettings: {
+        daily: true,
+        medication: false,
+        hydration: true,
+        insights: false,
+      },
     };
 
     await createUser(userCredential.user.uid, userData);
@@ -100,4 +113,43 @@ export const registerUser = async (
 
 export const logout = async () => {
   return await signOut(auth);
+};
+
+export const sendPasswordReset = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error: any) {
+    let errorMessage = "Failed to send password reset email.";
+
+    switch (error.code) {
+      case "auth/user-not-found":
+        errorMessage = "No account found with this email address.";
+        break;
+      case "auth/invalid-email":
+        errorMessage = "Please enter a valid email address.";
+        break;
+      case "auth/too-many-requests":
+        errorMessage = "Too many requests. Please try again later.";
+        break;
+    }
+
+    throw new Error(errorMessage);
+  }
+};
+
+export const deleteUserAccount = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("No authenticated user found.");
+    }
+
+    await deleteUser(user);
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete account error:", error);
+    throw new Error("Failed to delete account.");
+  }
 };

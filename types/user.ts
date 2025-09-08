@@ -1,7 +1,12 @@
 import { FieldValue, Timestamp } from "firebase/firestore";
 
-export type SickleCellType = "SS" | "SC" | "SB+" | "SB0" | "AS" | "other";
+export type SickleCellType = "SS" | "SC" | "SB+" | "SB0" | "other";
 export type BloodType = "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+export type NotificationType =
+  | "daily"
+  | "hydration"
+  | "medication"
+  | "insights";
 
 export interface EmergencyContact {
   name: string | null;
@@ -25,6 +30,11 @@ export interface User {
   createdAt: Timestamp | FieldValue;
   updatedAt: Timestamp | FieldValue;
   profile: UserProfile;
-  notifications: boolean;
+  notificationSettings: {
+    daily: boolean;
+    medication: boolean;
+    hydration: boolean;
+    insights: boolean;
+  };
   pushToken?: string | null;
 }

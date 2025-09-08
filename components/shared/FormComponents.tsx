@@ -88,6 +88,8 @@ export const FormInput: React.FC<FormInputProps> = ({
           placeholder={placeholder}
           keyboardType={keyboardType}
           secureTextEntry={secureTextEntry}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
         {rightIcon && (
           <TouchableOpacity onPress={onRightIconPress} style={styles.rightIcon}>

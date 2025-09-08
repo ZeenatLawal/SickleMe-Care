@@ -41,7 +41,7 @@ export function WeatherDisplay() {
   return (
     <View style={styles.container}>
       <Text style={styles.weatherText}>
-        {weather.temperature}° {getWeatherIcon(weather.weatherDescription)}
+        {weather.temperature}°C {getWeatherIcon(weather.weatherDescription)}
       </Text>
       <Text style={styles.conditionText}>
         {weather.weatherDescription.charAt(0).toUpperCase() +

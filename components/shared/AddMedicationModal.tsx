@@ -1,5 +1,4 @@
 import { createMedication } from "@/backend";
-import { Button } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { MedicationFrequency } from "@/types";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Button } from "./Button";
 
 interface AddMedicationModalProps {
   visible: boolean;
@@ -22,7 +22,7 @@ interface AddMedicationModalProps {
   userId: string;
 }
 
-export default function AddMedicationModal({
+export function AddMedicationModal({
   visible,
   onClose,
   onMedicationAdded,
