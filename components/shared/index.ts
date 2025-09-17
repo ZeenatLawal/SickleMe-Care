@@ -12,6 +12,7 @@ export {
   FormSwitch,
 } from "./FormComponents";
 export { MoodSelector } from "./MoodSelector";
+export { OfflineIndicator } from "./OfflineIndicator";
 export { ScreenWrapper } from "./ScreenWrapper";
 export { StatItem, StatsGrid } from "./Stats";
 export { WeatherDisplay } from "./WeatherDisplay";

@@ -8,12 +8,14 @@ import {
   Button,
   CardWithTitle,
   DatePicker,
+  OfflineIndicator,
   ScreenWrapper,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { PainLocation } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
 import { getTodayDateString } from "@/utils/dateUtils";
+import { dailyCache } from "@/utils/offlineManager";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import React, { useCallback, useEffect, useState } from "react";
@@ -38,11 +40,14 @@ export default function TrackScreen() {
   const [customPainLocation, setCustomPainLocation] = useState("");
   const [customSymptom, setCustomSymptom] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!userProfile?.userId) return;
 
     try {
+      setIsOffline(false);
+
       setPainLevel(0);
       setHydrationAmount(0);
       setSelectedSymptoms([]);
@@ -50,34 +55,79 @@ export default function TrackScreen() {
       setCustomPainLocation("");
       setCustomSymptom("");
 
-      const hydrationData = await getHydrationTotal(
-        userProfile.userId,
-        selectedDate
-      );
-      if (hydrationData.total > 0) {
-        setHydrationAmount(hydrationData.total);
+      const cachedData = await dailyCache.get(userProfile.userId, selectedDate);
+      if (cachedData) {
+        if ((cachedData as any).hydrationTotal?.total > 0) {
+          setHydrationAmount((cachedData as any).hydrationTotal.total);
+        }
+        if ((cachedData as any).painEntry) {
+          const painData = (cachedData as any).painEntry;
+          setPainLevel(painData.painLevel || 0);
+          if (Array.isArray(painData.location)) {
+            setSelectedPainLocations(painData.location);
+          } else if (painData.location) {
+            setSelectedPainLocations([painData.location]);
+          }
+
+          if (
+            painData.description &&
+            painData.description.includes("Symptoms:")
+          ) {
+            const symptomsText = painData.description.split("Symptoms: ")[1];
+            if (symptomsText && symptomsText !== "No additional symptoms") {
+              const symptoms = symptomsText.split(", ");
+              setSelectedSymptoms(symptoms);
+            }
+          }
+        }
       }
 
-      const painData = await getPainEntry(userProfile.userId, selectedDate);
-      if (painData) {
-        setPainLevel(painData.painLevel);
-        setSelectedPainLocations(painData.location || []);
+      try {
+        const [hydrationData, painData] = await Promise.all([
+          getHydrationTotal(userProfile.userId, selectedDate),
+          getPainEntry(userProfile.userId, selectedDate),
+        ]);
 
-        if (
-          painData.description &&
-          painData.description.includes("Symptoms:")
-        ) {
-          const symptomsText = painData.description.split("Symptoms: ")[1];
-          if (symptomsText && symptomsText !== "No additional symptoms") {
-            const symptoms = symptomsText.split(", ");
-            setSelectedSymptoms(symptoms);
+        if (hydrationData.total > 0) {
+          setHydrationAmount(hydrationData.total);
+        }
+
+        if (painData) {
+          setPainLevel(painData.painLevel);
+          if (Array.isArray(painData.location)) {
+            setSelectedPainLocations(painData.location);
+          } else if (painData.location) {
+            setSelectedPainLocations([painData.location]);
           }
+
+          if (
+            painData.description &&
+            painData.description.includes("Symptoms:")
+          ) {
+            const symptomsText = painData.description.split("Symptoms: ")[1];
+            if (symptomsText && symptomsText !== "No additional symptoms") {
+              const symptoms = symptomsText.split(", ");
+              setSelectedSymptoms(symptoms);
+            }
+          }
+        }
+
+        await dailyCache.save(userProfile.userId, selectedDate, {
+          hydrationTotal: hydrationData,
+          painEntry: painData,
+        });
+      } catch (onlineError) {
+        if (cachedData) {
+          setIsOffline(true);
+          console.log("Network failed, using cached tracking data");
+        } else {
+          console.error("Error loading tracking data:", onlineError);
         }
       }
     } catch (error) {
       console.error("Error loading data:", error);
     }
-  }, [userProfile, selectedDate]);
+  }, [userProfile?.userId, selectedDate]);
 
   useEffect(() => {
     loadData();
@@ -217,6 +267,7 @@ export default function TrackScreen() {
 
   return (
     <ScreenWrapper>
+      <OfflineIndicator isOffline={isOffline} />
       <View style={styles.header}>
         <Text style={styles.title}>Track Your Health</Text>
         <Text style={styles.subtitle}>

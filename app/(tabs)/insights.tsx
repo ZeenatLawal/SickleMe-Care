@@ -35,7 +35,7 @@ export default function InsightsScreen() {
       label: string;
     }[]
   >([]);
-  const { user, userProfile } = useAuth();
+  const { userProfile } = useAuth();
 
   const showMedicalDisclaimer = () => {
     Alert.alert(
@@ -53,7 +53,7 @@ export default function InsightsScreen() {
     try {
       setLoading(true);
 
-      const mlData = await collectMLData(user!.uid, selectedPeriod);
+      const mlData = await collectMLData(userProfile!.userId, selectedPeriod);
 
       const riskPrediction = randomForestPredictor.predictCrisisRisk(mlData);
 
@@ -75,12 +75,10 @@ export default function InsightsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, selectedPeriod]);
+  }, [selectedPeriod, userProfile]);
 
   useEffect(() => {
-    if (user && userProfile) {
-      loadCrisisPrediction();
-
+    if (userProfile) {
       const periods = getAvailableTimePeriods(userProfile.createdAt);
       setAvailablePeriods(periods);
 
@@ -88,7 +86,13 @@ export default function InsightsScreen() {
         setSelectedPeriod(periods[0].id as TimePeriod);
       }
     }
-  }, [user, userProfile, loadCrisisPrediction]);
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (userProfile && availablePeriods.length > 0) {
+      loadCrisisPrediction();
+    }
+  }, [userProfile, selectedPeriod, availablePeriods, loadCrisisPrediction]);
 
   return (
     <ScreenWrapper>

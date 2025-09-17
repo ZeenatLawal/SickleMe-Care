@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
+import { cacheData, getCachedData } from "../offlineManager";
 
 export interface WeatherData {
   temperature: number;
@@ -22,19 +22,14 @@ const API_KEY =
   Constants.expoConfig?.extra?.openWeatherApiKey ||
   process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
-const CACHE_DURATION = 2 * 60 * 60 * 1000; // 2 hours
 
 /**
  * Get current weather conditions
  */
-export async function getCurrentWeather(lat: number, lon: number) {
+async function getWeather(lat: number, lon: number) {
   if (!API_KEY) {
     throw new Error("OpenWeather API key is missing");
   }
-
-  const cacheKey = `weather_current_${lat}_${lon}`;
-  const cached = await getCachedData(cacheKey);
-  if (cached) return cached;
 
   const url = `${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
 
@@ -47,16 +42,31 @@ export async function getCurrentWeather(lat: number, lon: number) {
 
   const data = await response.json();
 
-  const weatherData = {
+  return {
     temperature: Math.round(data.main.temp),
     windSpeed: Math.round(data.wind.speed),
     weatherDescription: data.weather[0].description,
     location: `${data.name}, ${data.sys.country}`,
     timestamp: new Date(),
   };
+}
 
-  await cacheData(cacheKey, weatherData);
-  return weatherData;
+export async function getCurrentWeather(lat: number, lon: number) {
+  const cacheKey = `weather_${lat}_${lon}`;
+
+  const cached = await getCachedData(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const weather = await getWeather(lat, lon);
+
+    await cacheData(cacheKey, weather, 1);
+
+    return weather;
+  } catch (error) {
+    console.error("Weather fetch failed:", error);
+    throw error;
+  }
 }
 
 export function calculateWeatherRisk(current: WeatherData) {
@@ -134,38 +144,6 @@ export async function getWeatherRisk(
       triggers: ["Weather data unavailable"],
       recommendations: ["Monitor local weather conditions manually"],
     };
-  }
-}
-
-export async function cacheData(key: string, data: WeatherData) {
-  try {
-    const cacheObject = {
-      data,
-      timestamp: Date.now(),
-    };
-    await AsyncStorage.setItem(key, JSON.stringify(cacheObject));
-  } catch (error) {
-    console.warn("Failed to cache weather data:", error);
-  }
-}
-
-export async function getCachedData(key: string) {
-  try {
-    const cached = await AsyncStorage.getItem(key);
-    if (!cached) return null;
-
-    const cacheObject = JSON.parse(cached);
-    const age = Date.now() - cacheObject.timestamp;
-
-    if (age < CACHE_DURATION) {
-      return cacheObject.data;
-    }
-
-    await AsyncStorage.removeItem(key);
-    return null;
-  } catch (error) {
-    console.warn("Failed to read cached weather data:", error);
-    return null;
   }
 }
 

@@ -4,6 +4,7 @@ import {
   BaseCard,
   CardWithTitle,
   DatePicker,
+  OfflineIndicator,
   ScreenWrapper,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
@@ -12,6 +13,7 @@ import { useNotifications } from "@/utils/context/NotificationProvider";
 import { getTodayDateString } from "@/utils/dateUtils";
 import { loadMedicationProgress, UIMedication } from "@/utils/medicationUtils";
 import { scheduleMedicationNotifications } from "@/utils/notifications";
+import { medicationCache } from "@/utils/offlineManager";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -31,17 +33,45 @@ export default function MedicationsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   const loadMedications = useCallback(async () => {
     if (!userProfile?.userId) return;
 
     try {
       setIsLoading(true);
-      const medicationProgress = await loadMedicationProgress(
+      setIsOffline(false);
+
+      const cached = await medicationCache.get(
         userProfile.userId,
         selectedDate
       );
-      setMedications(medicationProgress.medications);
+      if (cached && (cached as any).medications) {
+        setMedications((cached as any).medications);
+        setIsLoading(false);
+      }
+
+      try {
+        const medicationProgress = await loadMedicationProgress(
+          userProfile.userId,
+          selectedDate
+        );
+
+        setMedications(medicationProgress.medications);
+
+        await medicationCache.save(
+          userProfile.userId,
+          selectedDate,
+          medicationProgress
+        );
+      } catch (onlineError) {
+        if (cached) {
+          setIsOffline(true);
+          console.log("Network failed, using cached data");
+        } else {
+          throw onlineError;
+        }
+      }
     } catch (error) {
       console.error("Error loading medications:", error);
       Alert.alert("Error", "Failed to load medications");
@@ -168,6 +198,7 @@ export default function MedicationsScreen() {
   return (
     <>
       <ScreenWrapper>
+        <OfflineIndicator isOffline={isOffline} />
         <View style={styles.header}>
           <View
             style={{
