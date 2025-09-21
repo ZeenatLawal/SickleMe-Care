@@ -253,7 +253,7 @@ export default function TrackScreen() {
 
   const getPainColor = (level: number) => {
     if (level <= 3) return Colors.secondaryLight;
-    if (level <= 6) return Colors.painMedium;
+    if (level <= 6) return Colors.warning;
     return Colors.primary;
   };
 
@@ -437,8 +437,6 @@ export default function TrackScreen() {
       <Button
         title={isLoading ? "Saving..." : "Track"}
         onPress={saveTracking}
-        variant="primary"
-        style={styles.saveButton}
         disabled={isLoading}
       />
     </ScreenWrapper>
@@ -583,17 +581,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: Colors.white,
     color: Colors.text,
-  },
-  saveButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 16,
-    borderRadius: 25,
-    alignItems: "center",
-    marginBottom: 30,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
   },
 });

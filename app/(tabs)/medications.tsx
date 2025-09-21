@@ -321,9 +321,7 @@ export default function MedicationsScreen() {
                 <Text
                   style={[
                     styles.takeButtonText,
-                    medication.taken
-                      ? styles.takeButtonTextTaken
-                      : styles.takeButtonTextPending,
+                    { color: medication.taken ? Colors.white : Colors.primary },
                   ]}
                 >
                   {medication.taken
@@ -487,12 +485,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
-  },
-  takeButtonTextPending: {
-    color: Colors.primary,
-  },
-  takeButtonTextTaken: {
-    color: Colors.white,
   },
   emptyState: {
     alignItems: "center",

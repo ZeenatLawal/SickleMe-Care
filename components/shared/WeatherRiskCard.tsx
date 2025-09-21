@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   triggerText: {
     fontSize: 13,
-    color: Colors.gray700,
+    color: Colors.gray600,
     marginLeft: 8,
     flex: 1,
   },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   },
   recommendationText: {
     fontSize: 13,
-    color: Colors.gray700,
+    color: Colors.gray600,
     marginLeft: 8,
     flex: 1,
     lineHeight: 18,
