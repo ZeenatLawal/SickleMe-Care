@@ -12,7 +12,7 @@ import {
   TimePeriod,
 } from "@/utils/ml/dataCollector";
 import type { CrisisPrediction } from "@/utils/ml/randomForestPredictor";
-import { randomForestPredictor } from "@/utils/ml/randomForestPredictor";
+import { predictCrisisRisk } from "@/utils/ml/randomForestPredictor";
 import { getRiskColor, getRiskIcon } from "@/utils/weather/weatherUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -55,7 +55,7 @@ export default function InsightsScreen() {
 
       const mlData = await collectMLData(userProfile!.userId, selectedPeriod);
 
-      const riskPrediction = randomForestPredictor.predictCrisisRisk(mlData);
+      const riskPrediction = predictCrisisRisk(mlData);
 
       setPrediction(riskPrediction);
     } catch (error) {
@@ -155,7 +155,7 @@ export default function InsightsScreen() {
         <BaseCard>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Analyzing health data...</Text>
+            <Text style={styles.loadingText}>Analysing health data...</Text>
           </View>
         </BaseCard>
       )}

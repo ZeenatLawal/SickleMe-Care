@@ -13,8 +13,7 @@ import {
   View,
 } from "react-native";
 
-import { deleteUserAccount } from "@/backend/auth";
-import { updateUser } from "@/backend/users";
+import { deleteUserAccount, updateUser } from "@/backend";
 import {
   Button,
   CardWithTitle,
@@ -517,7 +516,7 @@ Thank you!`;
             <View style={{ flex: 1 }}>
               <Text style={styles.switchLabel}>Insights & Recommendations</Text>
               <Text style={styles.switchDescription}>
-                Receive personalized health insights and tips
+                Receive personalised health insights and tips
               </Text>
             </View>
             <Switch

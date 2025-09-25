@@ -35,7 +35,7 @@ const onboardingData = [
     title: "Crisis Risk Prediction",
     subtitle: "Early Warning System",
     description:
-      "Our prediction system analyzes your health data and environmental factors to predict potential pain crises, helping you take preventive action early.",
+      "Our prediction system analyses your health data and environmental factors to predict potential pain crises, helping you take preventive action early.",
     icon: "warning",
     color: Colors.warning,
   },
@@ -59,7 +59,7 @@ const onboardingData = [
     title: "Weather Alerts",
     subtitle: "Environmental Awareness",
     description:
-      "Get personalized weather alerts based on conditions that might trigger symptoms. Stay prepared for weather changes that could affect your health.",
+      "Get personalised weather alerts based on conditions that might trigger symptoms. Stay prepared for weather changes that could affect your health.",
     icon: "partly-sunny",
     color: Colors.hydration,
   },

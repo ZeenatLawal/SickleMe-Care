@@ -4,15 +4,17 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
+// Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowList: true,
+    shouldShowBanner: true, // Show banner for incoming notifications
+    shouldPlaySound: true, // Play sound for incoming notifications
+    shouldSetBadge: true, // Set badge for incoming notifications
+    shouldShowList: true, // Show in notification list
   }),
 });
 
+// Register device for push notifications
 export async function registerForPushNotifications() {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("health-reminders", {
@@ -29,6 +31,7 @@ export async function registerForPushNotifications() {
 
     let finalStatus = existingStatus;
 
+    // Request permissions if not granted
     if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
@@ -49,6 +52,7 @@ export async function registerForPushNotifications() {
     }
 
     try {
+      // Generate push token
       const pushTokenString = (
         await Notifications.getExpoPushTokenAsync({
           projectId,
@@ -65,6 +69,7 @@ export async function registerForPushNotifications() {
   }
 }
 
+// Schedule daily health check-in notifications (morning & evening)
 export async function scheduleDailyNotifications() {
   try {
     await cancelNotifications("daily-");
@@ -72,6 +77,7 @@ export async function scheduleDailyNotifications() {
     const now = new Date();
     const notifications: any[] = [];
 
+    // Schedule for next 14 days (8 AM and 8 PM)
     for (let i = 0; i < 14; i++) {
       const morningTime = new Date(now);
       morningTime.setDate(now.getDate() + i);
@@ -131,6 +137,7 @@ export async function scheduleDailyNotifications() {
   }
 }
 
+// Motivational hydration messages
 const HYDRATION_MESSAGES = [
   {
     title: "Hydration Check! 💧",
@@ -154,6 +161,7 @@ const HYDRATION_MESSAGES = [
   },
 ];
 
+// Schedule hydration reminders throughout the day
 export async function scheduleHydrationNotifications() {
   try {
     await cancelNotifications("hydration-");
@@ -163,6 +171,7 @@ export async function scheduleHydrationNotifications() {
     const notifications: any[] = [];
     const times = [9, 11, 13, 15, 17, 19]; // 9am, 11am, 1pm, 3pm, 5pm, 7pm
 
+    // Schedule for next 7 days
     for (let day = 0; day < 7; day++) {
       for (let timeIndex = 0; timeIndex < times.length; timeIndex++) {
         const hour = times[timeIndex];
@@ -171,6 +180,7 @@ export async function scheduleHydrationNotifications() {
         notificationTime.setHours(hour, 0, 0, 0);
 
         if (notificationTime > now) {
+          // Rotate through different messages
           const message =
             HYDRATION_MESSAGES[scheduledCount % HYDRATION_MESSAGES.length];
 
@@ -216,6 +226,7 @@ export async function scheduleHydrationNotifications() {
   }
 }
 
+// Get notification times based on medication frequency
 const getNotificationTimes = (frequency: string) => {
   switch (frequency) {
     case "daily":
@@ -236,6 +247,7 @@ const getNotificationTimes = (frequency: string) => {
   }
 };
 
+// Schedule medication reminders based on user's medications
 export async function scheduleMedicationNotifications(userId: string) {
   try {
     const medications = await getUserMedications(userId);
@@ -250,10 +262,12 @@ export async function scheduleMedicationNotifications(userId: string) {
     const now = new Date();
     const notifications: any[] = [];
 
+    // Get unique frequencies from all medications
     const frequencies = [...new Set(medications.map((med) => med.frequency))];
 
     const uniqueTimes = new Set<string>();
 
+    // Schedule for next 7 days
     for (let i = 0; i < 7; i++) {
       for (const frequency of frequencies) {
         const times = getNotificationTimes(frequency);
@@ -310,9 +324,7 @@ export async function scheduleMedicationNotifications(userId: string) {
   }
 }
 
-/**
- * Notification functions
- */
+// Notification management handlers for each type
 export const NotificationHandlers = {
   daily: {
     schedule: (userId?: string) => scheduleDailyNotifications(),
@@ -340,6 +352,7 @@ export const NotificationHandlers = {
   },
 } as const;
 
+// Cancel notifications
 export async function cancelNotifications(prefix: string) {
   try {
     const scheduledNotifications =

@@ -1,4 +1,4 @@
-import { registerUser } from "@/backend/auth";
+import { registerUser } from "@/backend";
 import { Button, FormInput, ScreenWrapper } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { validateEmail, validatePassword } from "@/utils/validate";

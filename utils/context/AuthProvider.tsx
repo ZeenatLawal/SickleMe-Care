@@ -1,6 +1,4 @@
-import { logout as authLogout } from "@/backend/auth";
-import { auth } from "@/backend/firebase";
-import { getUserById } from "@/backend/users";
+import { auth, logout as authLogout, getUserById } from "@/backend";
 import { User as UserProfile } from "@/types/user";
 import { onAuthStateChanged, User } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";

@@ -6,12 +6,18 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+/**
+ * Root Layout Component for SickleMe Care App
+ */
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <OnboardingProvider>
+        {/* Manages user authentication state and profile data */}
         <AuthProvider>
+          {/* Handles push notifications */}
           <NotificationProvider>
+            {/* Main navigation stack */}
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="(auth)" />
