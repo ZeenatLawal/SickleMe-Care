@@ -16,6 +16,9 @@ export type MedicationProgress = {
   totalDosesRequired: number;
 };
 
+/**
+ * Get required doses per day based on frequency
+ */
 export const getRequiredDosesPerDay = (frequency: string) => {
   switch (frequency) {
     case "twice-daily":
@@ -30,7 +33,9 @@ export const getRequiredDosesPerDay = (frequency: string) => {
   }
 };
 
-//  Load and calculate medication progress
+/**
+ * Load and calculate medication progress
+ */
 export const loadMedicationProgress = async (userId: string, date?: string) => {
   const entryDate = date || getTodayDateString();
   const userMeds = await getUserMedications(userId);
@@ -74,10 +79,13 @@ export const loadMedicationProgress = async (userId: string, date?: string) => {
   };
 };
 
+/**
+ * Calculate medication adherence
+ */
 export const calculateMedicationAdherence = async (
   userId: string,
   dates: string[]
-): Promise<number> => {
+) => {
   const userMeds = await getUserMedications(userId);
 
   if (userMeds.length === 0) return 100;

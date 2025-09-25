@@ -549,7 +549,7 @@ Thank you!`;
             style={{ marginBottom: 12 }}
           />
           <Button
-            title="View App Tutorial"
+            title="View App Onboarding"
             onPress={handleViewOnboarding}
             variant="secondary"
             icon="school"
