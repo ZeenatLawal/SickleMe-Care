@@ -143,12 +143,10 @@ export function NotificationProvider({
 
   const refreshPushToken = useCallback(async () => {
     if (!isAuthenticated || !userProfile?.userId) {
-      console.log("User not authenticated");
       return;
     }
 
     try {
-      console.log("Refreshing push token...");
       const newToken = await registerForPushNotifications();
 
       if (newToken) {
@@ -158,17 +156,12 @@ export function NotificationProvider({
           userProfile.pushToken !== newToken;
 
         if (shouldUpdate) {
-          console.log("Updating push token...");
           setPushToken(newToken);
 
           await updateUser(userProfile.userId, {
             pushToken: newToken,
             updatedAt: serverTimestamp(),
           });
-
-          console.log("Push token updated successfully");
-        } else {
-          console.log("Push token already up to date");
         }
       }
     } catch (error) {
@@ -222,19 +215,12 @@ export function NotificationProvider({
           return;
         }
 
-        console.log(
-          "Notification received while app is running:",
-          notification
-        );
         setNotification(notification);
       });
 
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("Notification response:", response);
         const data = response.notification.request.content.data;
-
-        console.log("data", JSON.stringify(data, null, 2));
 
         // Handle background trigger when app was closed
         if (data?.type === "crisis-daily-trigger" && userProfile?.userId) {
@@ -286,7 +272,6 @@ export function NotificationProvider({
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === "active" && isAuthenticated) {
-        console.log("App became active, refreshing push token...");
         refreshPushToken();
 
         if (userProfile) {

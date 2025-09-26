@@ -70,7 +70,6 @@ export async function registerForPushNotifications() {
         })
       ).data;
 
-      console.log("Push token retrieved");
       return pushTokenString;
     } catch (e: unknown) {
       throw new Error(`${e}`);
@@ -136,10 +135,8 @@ export async function scheduleDailyNotifications() {
         )
       );
 
-      console.log(`Daily notifications scheduled successfully`);
       return true;
     } else {
-      console.log("No daily notifications to schedule");
       return false;
     }
   } catch (error) {
@@ -225,10 +222,8 @@ export async function scheduleHydrationNotifications() {
         )
       );
 
-      console.log(`Hydration notifications scheduled successfully`);
       return true;
     } else {
-      console.log("No hydration notifications to schedule");
       return false;
     }
   } catch (error) {
@@ -305,7 +300,6 @@ export async function sendDailyRiskAssessment(userId: string) {
     );
 
     if (todaysAssessment) {
-      console.log("Risk assessment already sent today, skipping");
       return true;
     }
 
@@ -337,7 +331,6 @@ Weather Risk: ${mlData.weatherRisk}/10`;
 
     await Notifications.scheduleNotificationAsync(notification);
 
-    console.log(`Daily risk assessment sent: ${prediction.riskLevel} risk`);
     return true;
   } catch (error) {
     console.error("Error sending daily risk assessment:", error);
@@ -374,7 +367,6 @@ export async function scheduleMedicationNotifications(userId: string) {
     await cancelNotifications("medication-");
 
     if (medications.length === 0) {
-      console.log("No medications found for user");
       return false;
     }
 
@@ -431,10 +423,8 @@ export async function scheduleMedicationNotifications(userId: string) {
         )
       );
 
-      console.log(`Medication notifications scheduled successfully`);
       return true;
     } else {
-      console.log("No medication notifications to schedule");
       return false;
     }
   } catch (error) {
@@ -490,7 +480,6 @@ export async function cancelNotifications(prefix: string) {
       );
     }
 
-    console.log(`${prefix} notifications cancelled`);
     return true;
   } catch (error) {
     console.error(`Error cancelling ${prefix} notifications:`, error);
