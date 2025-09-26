@@ -10,6 +10,9 @@ import { User } from "../types/user";
 import { auth } from "./firebase";
 import { createUser, getUserById } from "./users";
 
+/**
+ * Authenticates user with email and password
+ */
 export const loginWithEmail = async (email: string, password: string) => {
   try {
     const userCredential = await signInWithEmailAndPassword(
@@ -52,6 +55,9 @@ export const loginWithEmail = async (email: string, password: string) => {
   }
 };
 
+/**
+ * Creates a new user account with email and password
+ */
 export const registerUser = async (
   email: string,
   password: string,
@@ -64,6 +70,7 @@ export const registerUser = async (
       password
     );
 
+    // Initialize user profile
     const userData: User = {
       userId: userCredential.user.uid,
       email: userCredential.user.email || "",
@@ -71,6 +78,7 @@ export const registerUser = async (
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
 
+      // Health profile
       profile: {
         dateOfBirth: null,
         bloodType: null,
@@ -111,10 +119,16 @@ export const registerUser = async (
   }
 };
 
+/**
+ * Signs out the current user from Firebase Auth
+ */
 export const logout = async () => {
   return await signOut(auth);
 };
 
+/**
+ * Sends password reset email to user
+ */
 export const sendPasswordReset = async (email: string) => {
   try {
     await sendPasswordResetEmail(auth, email);
@@ -138,6 +152,9 @@ export const sendPasswordReset = async (email: string) => {
   }
 };
 
+/**
+ * Permanently deletes the current user's account
+ */
 export const deleteUserAccount = async () => {
   try {
     const user = auth.currentUser;
@@ -145,6 +162,8 @@ export const deleteUserAccount = async () => {
       throw new Error("No authenticated user found.");
     }
 
+    // Permanently delete the Firebase Auth account
+    // TODO: This should also trigger cleanup of user data in Firestore
     await deleteUser(user);
 
     return { success: true };

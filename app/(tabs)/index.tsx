@@ -9,6 +9,7 @@ import {
   CardWithTitle,
   EducationCards,
   MoodSelector,
+  OfflineIndicator,
   ScreenWrapper,
   StatsGrid,
   WeatherDisplay,
@@ -18,6 +19,7 @@ import { MoodType } from "@/types";
 import { useAuth } from "@/utils/context/AuthProvider";
 import { getTodayDateString } from "@/utils/dateUtils";
 import { loadMedicationProgress } from "@/utils/medicationUtils";
+import { dailyCache } from "@/utils/offlineManager";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
@@ -30,29 +32,71 @@ export default function DashboardScreen() {
   const [medicationsTaken, setMedicationsTaken] = useState(0);
   const [medicationsTotal, setMedicationsTotal] = useState(0);
   const [avgPainLevel, setAvgPainLevel] = useState(0);
+  const [isOffline, setIsOffline] = useState(false);
 
   const loadDashboardData = useCallback(async () => {
     if (!userProfile?.userId) return;
 
     try {
+      setIsOffline(false);
       const today = getTodayDateString();
-      const todayMood = await getMoodEntry(userProfile.userId, today);
-      if (todayMood) {
-        setSelectedMood(todayMood.mood);
+
+      const cachedData = await dailyCache.get(userProfile.userId, today);
+      if (cachedData) {
+        if ((cachedData as any).moodEntry) {
+          setSelectedMood((cachedData as any).moodEntry.mood);
+        }
+        if ((cachedData as any).hydrationTotal) {
+          setHydrationTotal((cachedData as any).hydrationTotal.total || 0);
+        }
+        if ((cachedData as any).medicationProgress) {
+          setMedicationsTotal(
+            (cachedData as any).medicationProgress.totalMedications || 0
+          );
+          setMedicationsTaken(
+            (cachedData as any).medicationProgress.completedMedications || 0
+          );
+        }
+        if ((cachedData as any).painEntry) {
+          setAvgPainLevel((cachedData as any).painEntry.painLevel || 0);
+        }
+        console.log("Loaded dashboard data from cache");
       }
 
-      const hydration = await getHydrationTotal(userProfile.userId, today);
-      setHydrationTotal(hydration.total);
+      try {
+        const [todayMood, hydration, medicationProgress, todayPain] =
+          await Promise.all([
+            getMoodEntry(userProfile.userId, today),
+            getHydrationTotal(userProfile.userId, today),
+            loadMedicationProgress(userProfile.userId),
+            getPainEntry(userProfile.userId, today),
+          ]);
 
-      const medicationProgress = await loadMedicationProgress(
-        userProfile.userId
-      );
-      setMedicationsTotal(medicationProgress.totalMedications);
-      setMedicationsTaken(medicationProgress.completedMedications);
+        if (todayMood) {
+          setSelectedMood(todayMood.mood);
+        }
+        setHydrationTotal(hydration?.total || 0);
+        setMedicationsTotal(medicationProgress.totalMedications);
+        setMedicationsTaken(medicationProgress.completedMedications);
+        if (todayPain) {
+          setAvgPainLevel(todayPain.painLevel);
+        }
 
-      const todayPain = await getPainEntry(userProfile.userId, today);
-      if (todayPain) {
-        setAvgPainLevel(todayPain.painLevel);
+        await dailyCache.save(userProfile.userId, today, {
+          moodEntry: todayMood,
+          hydrationTotal: hydration,
+          medicationProgress,
+          painEntry: todayPain,
+        });
+
+        console.log("Loaded fresh dashboard data and cached");
+      } catch (onlineError) {
+        if (cachedData) {
+          setIsOffline(true);
+          console.log("Network failed, using cached dashboard data");
+        } else {
+          console.error("Error loading dashboard data:", onlineError);
+        }
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -203,6 +247,7 @@ export default function DashboardScreen() {
 
   return (
     <ScreenWrapper>
+      <OfflineIndicator isOffline={isOffline} />
       <View style={styles.header}>
         <View
           style={{

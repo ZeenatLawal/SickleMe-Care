@@ -1,4 +1,4 @@
-import { loginWithEmail, sendPasswordReset } from "@/backend/auth";
+import { loginWithEmail, sendPasswordReset } from "@/backend";
 import {
   Button,
   CustomModal,

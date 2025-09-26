@@ -1,52 +1,93 @@
-# SickleMe-Care
+# SickleMe Care+
 
-# Welcome to your Expo app 👋
+A health management app for individuals with sickle cell disease. Track symptoms, manage medications, and receive crisis risk predictions based on tracked health data.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Key Features
 
-## Get started
+- **Health Tracking**: Pain, mood, hydration, and medication monitoring
+- **Smart Notifications**: Daily reminders and risk assessments
+- **Crisis Prediction**: Machine learning-powered risk analysis
+- **Weather Integration**: Weather-based health risk alerts
 
-1. Install dependencies
+## Technology
+
+- React Native with Expo
+- Firebase (Authentication & Database)
+- Random Forest ML algorithm
+- OpenWeatherMap API
+
+## Installation
+
+1. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. **Environment Configuration**
 
+   - Create `.env.local` file with Firebase and OpenWeatherMap API keys
+   - Add `google-services.json` to root directory
+
+3. **Start the development server**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Files Included
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Source Code**: Complete React Native application
+- **APK File**: Ready-to-install Android application
+- **Documentation**: Setup and usage instructions
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project Structure
 
-## Get a fresh project
+```
+app/                 # Main app screens and navigation
+├── (auth)/         # Authentication screens
+├── (tabs)/         # Main tab navigation
+└── education/      # Educational content
 
-When you're ready, run:
+backend/            # Firebase backend functions
+├── auth.ts         # Authentication logic
+├── medications.ts  # Medication management
+├── users.ts        # User data management
+└── firebase.ts     # Firebase configuration
 
-```bash
-npm run reset-project
+components/         # Reusable UI components
+├── shared/         # Shared components
+└── ui/            # UI-specific components
+
+utils/              # Utility functions
+├── context/        # React contexts
+├── ml/            # Prediction algorithm
+├── weather/       # Weather service integration
+└── notifications.ts # Notification management
+
+types/              # TypeScript type definitions
+
+data/              # JSON files
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Main Components
 
-## Learn more
+- **Authentication**: Email/password login with Firebase
+- **Health Tracking**: Pain, mood, hydration, medication logging
+- **ML Predictions**: Random Forest algorithm for crisis risk assessment
+- **Notifications**: Smart reminders and daily health check-ins
+- **Weather Integration**: Location-based health risk factors
 
-To learn more about developing your project with Expo, look at the following resources:
+## Technical Implementation
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- **Frontend**: React Native with TypeScript
+- **State Management**: React Context API
+- **Navigation**: Expo Router with file-based routing
+- **Database**: Firebase Firestore for real-time data
+- **Authentication**: Firebase Auth with email/password
+- **Machine Learning**: Custom Random Forest implementation
+- **Notifications**: Expo Notifications with background scheduling
+- **Weather Data**: OpenWeatherMap API integration
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+**SickleMe Care+** - Mobile health management for sickle cell disease patients.

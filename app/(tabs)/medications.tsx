@@ -4,12 +4,16 @@ import {
   BaseCard,
   CardWithTitle,
   DatePicker,
+  OfflineIndicator,
   ScreenWrapper,
 } from "@/components/shared";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/utils/context/AuthProvider";
+import { useNotifications } from "@/utils/context/NotificationProvider";
 import { getTodayDateString } from "@/utils/dateUtils";
 import { loadMedicationProgress, UIMedication } from "@/utils/medicationUtils";
+import { scheduleMedicationNotifications } from "@/utils/notifications";
+import { medicationCache } from "@/utils/offlineManager";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -23,22 +27,51 @@ import {
 
 export default function MedicationsScreen() {
   const { userProfile } = useAuth();
+  const { isNotificationEnabled } = useNotifications();
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [medications, setMedications] = useState<UIMedication[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   const loadMedications = useCallback(async () => {
     if (!userProfile?.userId) return;
 
     try {
       setIsLoading(true);
-      const medicationProgress = await loadMedicationProgress(
+      setIsOffline(false);
+
+      const cached = await medicationCache.get(
         userProfile.userId,
         selectedDate
       );
-      setMedications(medicationProgress.medications);
+      if (cached && (cached as any).medications) {
+        setMedications((cached as any).medications);
+        setIsLoading(false);
+      }
+
+      try {
+        const medicationProgress = await loadMedicationProgress(
+          userProfile.userId,
+          selectedDate
+        );
+
+        setMedications(medicationProgress.medications);
+
+        await medicationCache.save(
+          userProfile.userId,
+          selectedDate,
+          medicationProgress
+        );
+      } catch (onlineError) {
+        if (cached) {
+          setIsOffline(true);
+          console.log("Network failed, using cached data");
+        } else {
+          throw onlineError;
+        }
+      }
     } catch (error) {
       console.error("Error loading medications:", error);
       Alert.alert("Error", "Failed to load medications");
@@ -46,6 +79,23 @@ export default function MedicationsScreen() {
       setIsLoading(false);
     }
   }, [userProfile?.userId, selectedDate]);
+
+  const rescheduleNotifications = useCallback(async () => {
+    if (!userProfile?.userId) return;
+
+    if (isNotificationEnabled("medication")) {
+      try {
+        await scheduleMedicationNotifications(userProfile.userId);
+      } catch (error) {
+        console.error("Error rescheduling medication notifications:", error);
+      }
+    }
+  }, [userProfile?.userId, isNotificationEnabled]);
+
+  const handleMeds = useCallback(async () => {
+    await loadMedications();
+    await rescheduleNotifications();
+  }, [loadMedications, rescheduleNotifications]);
 
   useEffect(() => {
     loadMedications();
@@ -106,7 +156,7 @@ export default function MedicationsScreen() {
             try {
               setDeletingId(id);
               await deleteMedication(id);
-              await loadMedications();
+              await handleMeds();
               Alert.alert("Success", "Medication deleted successfully!");
             } catch (error) {
               console.error("Error deleting medication:", error);
@@ -148,6 +198,7 @@ export default function MedicationsScreen() {
   return (
     <>
       <ScreenWrapper>
+        <OfflineIndicator isOffline={isOffline} />
         <View style={styles.header}>
           <View
             style={{
@@ -270,9 +321,7 @@ export default function MedicationsScreen() {
                 <Text
                   style={[
                     styles.takeButtonText,
-                    medication.taken
-                      ? styles.takeButtonTextTaken
-                      : styles.takeButtonTextPending,
+                    { color: medication.taken ? Colors.white : Colors.primary },
                   ]}
                 >
                   {medication.taken
@@ -308,7 +357,7 @@ export default function MedicationsScreen() {
       <AddMedicationModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onMedicationAdded={loadMedications}
+        onMedicationAdded={handleMeds}
         userId={userProfile?.userId || ""}
       />
     </>
@@ -436,12 +485,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
-  },
-  takeButtonTextPending: {
-    color: Colors.primary,
-  },
-  takeButtonTextTaken: {
-    color: Colors.white,
   },
   emptyState: {
     alignItems: "center",

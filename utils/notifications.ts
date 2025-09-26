@@ -1,24 +1,38 @@
+import { getUserMedications } from "@/backend";
+import { collectMLData } from "@/utils/ml/dataCollector";
+import { predictCrisisRisk } from "@/utils/ml/randomForestPredictor";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
+// Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowList: true,
+    shouldShowBanner: true, // Show banner for incoming notifications
+    shouldPlaySound: true, // Play sound for incoming notifications
+    shouldSetBadge: true, // Set badge for incoming notifications
+    shouldShowList: true, // Show in notification list
   }),
 });
 
+// Register device for push notifications
 export async function registerForPushNotifications() {
   if (Platform.OS === "android") {
+    // Main notification channel for user-visible notifications
     await Notifications.setNotificationChannelAsync("health-reminders", {
       name: "Health Reminders",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#FF231F7C",
+    });
+
+    // Silent channel for background triggers
+    await Notifications.setNotificationChannelAsync("background-tasks", {
+      name: "Background Tasks",
+      importance: Notifications.AndroidImportance.MIN,
+      vibrationPattern: [0],
+      showBadge: false,
     });
   }
 
@@ -28,6 +42,7 @@ export async function registerForPushNotifications() {
 
     let finalStatus = existingStatus;
 
+    // Request permissions if not granted
     if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
@@ -48,13 +63,13 @@ export async function registerForPushNotifications() {
     }
 
     try {
+      // Generate push token
       const pushTokenString = (
         await Notifications.getExpoPushTokenAsync({
           projectId,
         })
       ).data;
 
-      console.log("Push token retrieved");
       return pushTokenString;
     } catch (e: unknown) {
       throw new Error(`${e}`);
@@ -64,6 +79,7 @@ export async function registerForPushNotifications() {
   }
 }
 
+// Schedule daily health check-in notifications (morning & evening)
 export async function scheduleDailyNotifications() {
   try {
     await cancelNotifications("daily-");
@@ -71,6 +87,7 @@ export async function scheduleDailyNotifications() {
     const now = new Date();
     const notifications: any[] = [];
 
+    // Schedule for next 14 days (8 AM and 8 PM)
     for (let i = 0; i < 14; i++) {
       const morningTime = new Date(now);
       morningTime.setDate(now.getDate() + i);
@@ -118,10 +135,8 @@ export async function scheduleDailyNotifications() {
         )
       );
 
-      console.log(`Daily notifications scheduled successfully`);
       return true;
     } else {
-      console.log("No daily notifications to schedule");
       return false;
     }
   } catch (error) {
@@ -130,6 +145,7 @@ export async function scheduleDailyNotifications() {
   }
 }
 
+// Motivational hydration messages
 const HYDRATION_MESSAGES = [
   {
     title: "Hydration Check! 💧",
@@ -153,6 +169,7 @@ const HYDRATION_MESSAGES = [
   },
 ];
 
+// Schedule hydration reminders throughout the day
 export async function scheduleHydrationNotifications() {
   try {
     await cancelNotifications("hydration-");
@@ -162,6 +179,7 @@ export async function scheduleHydrationNotifications() {
     const notifications: any[] = [];
     const times = [9, 11, 13, 15, 17, 19]; // 9am, 11am, 1pm, 3pm, 5pm, 7pm
 
+    // Schedule for next 7 days
     for (let day = 0; day < 7; day++) {
       for (let timeIndex = 0; timeIndex < times.length; timeIndex++) {
         const hour = times[timeIndex];
@@ -170,6 +188,7 @@ export async function scheduleHydrationNotifications() {
         notificationTime.setHours(hour, 0, 0, 0);
 
         if (notificationTime > now) {
+          // Rotate through different messages
           const message =
             HYDRATION_MESSAGES[scheduledCount % HYDRATION_MESSAGES.length];
 
@@ -203,10 +222,8 @@ export async function scheduleHydrationNotifications() {
         )
       );
 
-      console.log(`Hydration notifications scheduled successfully`);
       return true;
     } else {
-      console.log("No hydration notifications to schedule");
       return false;
     }
   } catch (error) {
@@ -215,34 +232,40 @@ export async function scheduleHydrationNotifications() {
   }
 }
 
-export async function scheduleMedicationNotifications() {
+export async function scheduleCrisisRiskNotifications(userId: string) {
   try {
-    await cancelNotifications("medication-");
+    await cancelNotifications("crisis-");
 
     const now = new Date();
     const notifications: any[] = [];
-    const medicationTimes = [8, 14, 20]; // 8am, 2pm, 8pm
 
-    for (let i = 0; i < 7; i++) {
-      for (const hour of medicationTimes) {
-        const notificationTime = new Date(now);
-        notificationTime.setDate(now.getDate() + i);
-        notificationTime.setHours(hour, 0, 0, 0);
+    for (let day = 0; day < 7; day++) {
+      const checkTime = new Date(now);
+      checkTime.setDate(now.getDate() + day);
+      checkTime.setHours(7, 0, 0, 0);
 
-        if (notificationTime > now) {
-          notifications.push({
-            identifier: `medication-${hour}h-day${i}`,
-            content: {
-              title: "Medication Reminder 💊",
-              body: "Time to take your medications. Consistency helps manage your condition.",
-              data: { type: "medication-reminder", hour },
+      if (checkTime > now) {
+        notifications.push({
+          identifier: `crisis-daily-${day}`,
+          content: {
+            title: "",
+            body: "",
+            data: {
+              type: "crisis-daily-trigger",
+              userId: userId,
+              day: day,
+              silent: true,
             },
-            trigger: {
-              type: Notifications.SchedulableTriggerInputTypes.DATE,
-              date: notificationTime,
+            android: {
+              channelId: "background-tasks",
+              visibility: Notifications.AndroidNotificationVisibility.SECRET,
             },
-          });
-        }
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: checkTime,
+          },
+        });
       }
     }
 
@@ -253,10 +276,155 @@ export async function scheduleMedicationNotifications() {
         )
       );
 
-      console.log(`Medication notifications scheduled successfully`);
       return true;
     } else {
-      console.log("No medication notifications to schedule");
+      return false;
+    }
+  } catch (error) {
+    console.error("Error scheduling daily crisis risk checks:", error);
+    return false;
+  }
+}
+
+// Send daily risk assessment
+export async function sendDailyRiskAssessment(userId: string) {
+  try {
+    // Check if assessment already sent
+    const today = new Date().toDateString();
+    const existingNotifications =
+      await Notifications.getAllScheduledNotificationsAsync();
+    const todaysAssessment = existingNotifications.find(
+      (n) =>
+        n.identifier.includes("crisis-assessment") &&
+        n.identifier.includes(today.replace(/\s/g, ""))
+    );
+
+    if (todaysAssessment) {
+      return true;
+    }
+
+    const mlData = await collectMLData(userId, "week");
+    const prediction = predictCrisisRisk(mlData);
+
+    const mainRecommendation =
+      prediction.topFactors[0]?.recommendation ||
+      "Continue monitoring your health.";
+
+    const riskMessage = `Risk Level: ${prediction.riskLevel} (${prediction.riskScore}%)
+${mainRecommendation}
+Weather Risk: ${mlData.weatherRisk}/10`;
+
+    const notification = {
+      identifier: `crisis-assessment-${Date.now()}`,
+      content: {
+        title: `Daily Health Report - ${prediction.riskLevel} Risk`,
+        body: riskMessage,
+        data: {
+          type: "daily-risk-assessment",
+          riskLevel: prediction.riskLevel,
+          riskScore: prediction.riskScore,
+          weatherRisk: mlData.weatherRisk,
+        },
+      },
+      trigger: null,
+    };
+
+    await Notifications.scheduleNotificationAsync(notification);
+
+    return true;
+  } catch (error) {
+    console.error("Error sending daily risk assessment:", error);
+    return false;
+  }
+}
+
+// Get notification times based on medication frequency
+const getNotificationTimes = (frequency: string) => {
+  switch (frequency) {
+    case "daily":
+      return [{ hour: 8, minute: 30 }];
+    case "twice-daily":
+      return [
+        { hour: 8, minute: 30 },
+        { hour: 20, minute: 30 },
+      ];
+    case "three-times-daily":
+      return [
+        { hour: 8, minute: 30 },
+        { hour: 14, minute: 30 },
+        { hour: 20, minute: 30 },
+      ];
+    default:
+      return [];
+  }
+};
+
+// Schedule medication reminders based on user's medications
+export async function scheduleMedicationNotifications(userId: string) {
+  try {
+    const medications = await getUserMedications(userId);
+
+    await cancelNotifications("medication-");
+
+    if (medications.length === 0) {
+      return false;
+    }
+
+    const now = new Date();
+    const notifications: any[] = [];
+
+    // Get unique frequencies from all medications
+    const frequencies = [...new Set(medications.map((med) => med.frequency))];
+
+    const uniqueTimes = new Set<string>();
+
+    // Schedule for next 7 days
+    for (let i = 0; i < 7; i++) {
+      for (const frequency of frequencies) {
+        const times = getNotificationTimes(frequency);
+
+        for (const time of times) {
+          const timeKey = `${time.hour}${time.minute}`;
+
+          if (uniqueTimes.has(timeKey)) continue;
+          uniqueTimes.add(timeKey);
+
+          const notificationTime = new Date(now);
+          notificationTime.setDate(now.getDate() + i);
+          notificationTime.setHours(time.hour, time.minute, 0, 0);
+
+          if (notificationTime > now) {
+            notifications.push({
+              identifier: `medication-${time.hour}${time.minute}-day${i}`,
+              content: {
+                title: "Medication Reminder 💊",
+                body: "Time to take your medications. Consistency helps manage your condition.",
+                data: {
+                  type: "medication-reminder",
+                  hour: time.hour,
+                  minute: time.minute,
+                },
+              },
+              trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: notificationTime,
+              },
+            });
+          }
+        }
+      }
+      uniqueTimes.clear();
+    }
+
+    if (notifications.length > 0) {
+      await Promise.all(
+        notifications.map((notification) =>
+          Notifications.scheduleNotificationAsync(notification)
+        )
+      );
+
+      return true;
+    } else {
       return false;
     }
   } catch (error) {
@@ -265,35 +433,35 @@ export async function scheduleMedicationNotifications() {
   }
 }
 
-/**
- * Notification functions
- */
+// Notification management handlers for each type
 export const NotificationHandlers = {
   daily: {
-    schedule: scheduleDailyNotifications,
+    schedule: (userId?: string) => scheduleDailyNotifications(),
     cancel: () => cancelNotifications("daily-"),
     check: () => areNotificationsScheduled("daily-"),
   },
   hydration: {
-    schedule: scheduleHydrationNotifications,
+    schedule: (userId?: string) => scheduleHydrationNotifications(),
     cancel: () => cancelNotifications("hydration-"),
     check: () => areNotificationsScheduled("hydration-"),
   },
   medication: {
-    schedule: scheduleMedicationNotifications,
+    schedule: (userId?: string) =>
+      scheduleMedicationNotifications(userId || ""),
     cancel: () => cancelNotifications("medication-"),
     check: () => areNotificationsScheduled("medication-"),
   },
   insights: {
-    schedule: async () => {
-      console.log("Insights notifications not yet implemented");
-      return false;
+    schedule: async (userId?: string) => {
+      if (!userId) return false;
+      return await scheduleCrisisRiskNotifications(userId);
     },
-    cancel: () => cancelNotifications("insights-"),
-    check: () => areNotificationsScheduled("insights-"),
+    cancel: () => cancelNotifications("crisis-"),
+    check: () => areNotificationsScheduled("crisis-"),
   },
 } as const;
 
+// Cancel notifications
 export async function cancelNotifications(prefix: string) {
   try {
     const scheduledNotifications =
@@ -312,7 +480,6 @@ export async function cancelNotifications(prefix: string) {
       );
     }
 
-    console.log(`${prefix} notifications cancelled`);
     return true;
   } catch (error) {
     console.error(`Error cancelling ${prefix} notifications:`, error);

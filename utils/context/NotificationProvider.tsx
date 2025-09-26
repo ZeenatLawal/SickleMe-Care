@@ -16,6 +16,7 @@ import { AppState, AppStateStatus } from "react-native";
 import {
   NotificationHandlers,
   registerForPushNotifications,
+  sendDailyRiskAssessment,
 } from "../notifications";
 import { useAuth } from "./AuthProvider";
 
@@ -117,7 +118,7 @@ export function NotificationProvider({
 
     try {
       const success = enabled
-        ? await handler.schedule()
+        ? await handler.schedule(userProfile?.userId)
         : await handler.cancel();
 
       if (success) {
@@ -142,12 +143,10 @@ export function NotificationProvider({
 
   const refreshPushToken = useCallback(async () => {
     if (!isAuthenticated || !userProfile?.userId) {
-      console.log("User not authenticated");
       return;
     }
 
     try {
-      console.log("Refreshing push token...");
       const newToken = await registerForPushNotifications();
 
       if (newToken) {
@@ -157,17 +156,12 @@ export function NotificationProvider({
           userProfile.pushToken !== newToken;
 
         if (shouldUpdate) {
-          console.log("Updating push token...");
           setPushToken(newToken);
 
           await updateUser(userProfile.userId, {
             pushToken: newToken,
             updatedAt: serverTimestamp(),
           });
-
-          console.log("Push token updated successfully");
-        } else {
-          console.log("Push token already up to date");
         }
       }
     } catch (error) {
@@ -192,7 +186,7 @@ export function NotificationProvider({
       newStates[notificationType] = isScheduled;
 
       if (!isScheduled && isEnabledInSettings) {
-        const success = await handler.schedule();
+        const success = await handler.schedule(userProfile?.userId);
         if (success) {
           newStates[notificationType] = true;
         }
@@ -213,20 +207,30 @@ export function NotificationProvider({
 
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log(
-          "Notification received while app is running:",
-          notification
-        );
+        const data = notification.request.content.data;
+
+        // Handle silent background triggers
+        if (data?.type === "crisis-daily-trigger" && userProfile?.userId) {
+          sendDailyRiskAssessment(userProfile.userId);
+          return;
+        }
+
         setNotification(notification);
       });
 
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("Notification response:", response);
         const data = response.notification.request.content.data;
 
-        console.log("data", JSON.stringify(data, null, 2));
+        // Handle background trigger when app was closed
+        if (data?.type === "crisis-daily-trigger" && userProfile?.userId) {
+          console.log("Handling background crisis trigger on app open");
+          sendDailyRiskAssessment(userProfile.userId);
+          router.push("/(tabs)/insights");
+          return;
+        }
 
+        // Handle normal notification routing
         if (
           data?.type === "daily-checkup" ||
           data?.type === "hydration-reminder"
@@ -234,7 +238,7 @@ export function NotificationProvider({
           router.push("/(tabs)/track");
         } else if (data?.type === "medication-reminder") {
           router.push("/(tabs)/medications");
-        } else if (data?.type === "insights-reminder") {
+        } else if (data?.type === "daily-risk-assessment") {
           router.push("/(tabs)/insights");
         } else {
           router.push("/(tabs)");
@@ -249,7 +253,7 @@ export function NotificationProvider({
         responseListener.current.remove();
       }
     };
-  }, []);
+  }, [userProfile?.userId]);
 
   useEffect(() => {
     if (isAuthenticated && userProfile) {
@@ -268,7 +272,6 @@ export function NotificationProvider({
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === "active" && isAuthenticated) {
-        console.log("App became active, refreshing push token...");
         refreshPushToken();
 
         if (userProfile) {

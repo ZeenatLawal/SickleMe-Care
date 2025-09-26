@@ -12,7 +12,7 @@ import {
   TimePeriod,
 } from "@/utils/ml/dataCollector";
 import type { CrisisPrediction } from "@/utils/ml/randomForestPredictor";
-import { randomForestPredictor } from "@/utils/ml/randomForestPredictor";
+import { predictCrisisRisk } from "@/utils/ml/randomForestPredictor";
 import { getRiskColor, getRiskIcon } from "@/utils/weather/weatherUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -35,7 +35,7 @@ export default function InsightsScreen() {
       label: string;
     }[]
   >([]);
-  const { user, userProfile } = useAuth();
+  const { userProfile } = useAuth();
 
   const showMedicalDisclaimer = () => {
     Alert.alert(
@@ -53,9 +53,9 @@ export default function InsightsScreen() {
     try {
       setLoading(true);
 
-      const mlData = await collectMLData(user!.uid, selectedPeriod);
+      const mlData = await collectMLData(userProfile!.userId, selectedPeriod);
 
-      const riskPrediction = randomForestPredictor.predictCrisisRisk(mlData);
+      const riskPrediction = predictCrisisRisk(mlData);
 
       setPrediction(riskPrediction);
     } catch (error) {
@@ -75,12 +75,10 @@ export default function InsightsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, selectedPeriod]);
+  }, [selectedPeriod, userProfile]);
 
   useEffect(() => {
-    if (user && userProfile) {
-      loadCrisisPrediction();
-
+    if (userProfile) {
       const periods = getAvailableTimePeriods(userProfile.createdAt);
       setAvailablePeriods(periods);
 
@@ -88,7 +86,13 @@ export default function InsightsScreen() {
         setSelectedPeriod(periods[0].id as TimePeriod);
       }
     }
-  }, [user, userProfile, loadCrisisPrediction]);
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (userProfile && availablePeriods.length > 0) {
+      loadCrisisPrediction();
+    }
+  }, [userProfile, selectedPeriod, availablePeriods, loadCrisisPrediction]);
 
   return (
     <ScreenWrapper>
@@ -151,7 +155,7 @@ export default function InsightsScreen() {
         <BaseCard>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Analyzing health data...</Text>
+            <Text style={styles.loadingText}>Analysing health data...</Text>
           </View>
         </BaseCard>
       )}

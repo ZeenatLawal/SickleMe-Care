@@ -5,13 +5,9 @@ export { BaseCard, CardWithTitle } from "./Card";
 export { CustomModal } from "./CustomModal";
 export { DatePicker } from "./DatePicker";
 export { EducationCards } from "./EducationCards";
-export {
-  FormInput,
-  FormList,
-  FormListItem,
-  FormSwitch,
-} from "./FormComponents";
+export { FormInput } from "./FormInput";
 export { MoodSelector } from "./MoodSelector";
+export { OfflineIndicator } from "./OfflineIndicator";
 export { ScreenWrapper } from "./ScreenWrapper";
 export { StatItem, StatsGrid } from "./Stats";
 export { WeatherDisplay } from "./WeatherDisplay";

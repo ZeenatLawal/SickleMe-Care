@@ -8,7 +8,7 @@ interface ButtonProps {
   onPress?: () => void;
   variant?: "primary" | "secondary" | "danger" | "outline";
   size?: "small" | "medium" | "large";
-  icon?: keyof typeof MaterialIcons.glyphMap;
+  icon?: string;
   disabled?: boolean;
   loading?: boolean;
   style?: any;
@@ -27,7 +27,7 @@ export const Button: React.FC<ButtonProps> = ({
   const getButtonStyle = () => {
     const styles_array = [];
 
-    // Variant styles
+    // Variants
     switch (variant) {
       case "secondary":
         styles_array.push(styles.buttonSecondary);
@@ -42,7 +42,7 @@ export const Button: React.FC<ButtonProps> = ({
         styles_array.push(styles.buttonPrimary);
     }
 
-    // Size styles
+    // Sizes
     switch (size) {
       case "small":
         styles_array.push(styles.buttonSmall);
@@ -54,7 +54,6 @@ export const Button: React.FC<ButtonProps> = ({
         styles_array.push(styles.buttonMedium);
     }
 
-    // Disabled style
     if (disabled || loading) {
       styles_array.push(styles.buttonDisabled);
     }
@@ -86,7 +85,9 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={disabled || loading}
     >
-      {icon && <MaterialIcons name={icon} size={20} color={getIconColor()} />}
+      {icon && (
+        <MaterialIcons name={icon as any} size={20} color={getIconColor()} />
+      )}
       <Text style={getTextStyle()}>{loading ? "Loading..." : title}</Text>
     </TouchableOpacity>
   );

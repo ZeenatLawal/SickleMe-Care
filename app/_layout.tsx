@@ -1,44 +1,30 @@
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { AuthProvider } from "@/utils/context/AuthProvider";
 import { NotificationProvider } from "@/utils/context/NotificationProvider";
 import { OnboardingProvider } from "@/utils/context/OnboardingProvider";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+/**
+ * Root Layout Component for SickleMe Care App
+ */
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
-
-  if (!loaded) {
-    return null;
-  }
-
   return (
     <SafeAreaProvider>
       <OnboardingProvider>
+        {/* Manages user authentication state and profile data */}
         <AuthProvider>
+          {/* Handles push notifications */}
           <NotificationProvider>
-            <ThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="index" />
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-            </ThemeProvider>
+            {/* Main navigation stack */}
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
           </NotificationProvider>
         </AuthProvider>
       </OnboardingProvider>

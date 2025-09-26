@@ -21,7 +21,7 @@ export const createPainEntry = async (
   userId: string,
   painLevel: number,
   location: PainLocation[],
-  description?: string,
+  description?: string, // Symptom description
   date?: string
 ) => {
   const entryDate = date || getTodayDateString();

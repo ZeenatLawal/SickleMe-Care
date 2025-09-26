@@ -9,4 +9,4 @@ export * from "./moods";
 export * from "./pain";
 
 // Firebase configuration
-export { db } from "./firebase";
+export { auth, db } from "./firebase";
