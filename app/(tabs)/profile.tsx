@@ -455,9 +455,9 @@ Thank you!`;
         <CardWithTitle title="Notification Settings">
           <View style={styles.switchContainer}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.switchLabel}>Daily Health Reminders</Text>
+              <Text style={styles.switchLabel}>Daily Health Check-ins</Text>
               <Text style={styles.switchDescription}>
-                Get reminded to track your health daily
+                Reminders to log pain, mood, and health metrics
               </Text>
             </View>
             <Switch
@@ -476,7 +476,7 @@ Thank you!`;
             <View style={{ flex: 1 }}>
               <Text style={styles.switchLabel}>Medication Reminders</Text>
               <Text style={styles.switchDescription}>
-                Get notified when it&apos;s time to take your medications
+                Smart reminders based on your medication schedule
               </Text>
             </View>
             <Switch
@@ -512,11 +512,11 @@ Thank you!`;
             />
           </View>
 
-          {/* <View style={styles.switchContainer}>
+          <View style={styles.switchContainer}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.switchLabel}>Insights & Recommendations</Text>
+              <Text style={styles.switchLabel}>Daily Risk Assessment</Text>
               <Text style={styles.switchDescription}>
-                Receive personalised health insights and tips
+                Get your daily health report with crisis risk analysis
               </Text>
             </View>
             <Switch
@@ -528,9 +528,8 @@ Thank you!`;
               thumbColor={
                 notificationSettings.insights ? Colors.primary : Colors.gray400
               }
-              disabled={true} // TODO: Implement insights notifications
             />
-          </View> */}
+          </View>
         </CardWithTitle>
 
         <CardWithTitle title="Help & Support">

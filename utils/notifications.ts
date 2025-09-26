@@ -1,4 +1,6 @@
 import { getUserMedications } from "@/backend";
+import { collectMLData } from "@/utils/ml/dataCollector";
+import { predictCrisisRisk } from "@/utils/ml/randomForestPredictor";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -17,11 +19,20 @@ Notifications.setNotificationHandler({
 // Register device for push notifications
 export async function registerForPushNotifications() {
   if (Platform.OS === "android") {
+    // Main notification channel for user-visible notifications
     await Notifications.setNotificationChannelAsync("health-reminders", {
       name: "Health Reminders",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#FF231F7C",
+    });
+
+    // Silent channel for background triggers
+    await Notifications.setNotificationChannelAsync("background-tasks", {
+      name: "Background Tasks",
+      importance: Notifications.AndroidImportance.MIN,
+      vibrationPattern: [0],
+      showBadge: false,
     });
   }
 
@@ -226,6 +237,114 @@ export async function scheduleHydrationNotifications() {
   }
 }
 
+export async function scheduleCrisisRiskNotifications(userId: string) {
+  try {
+    await cancelNotifications("crisis-");
+
+    const now = new Date();
+    const notifications: any[] = [];
+
+    for (let day = 0; day < 7; day++) {
+      const checkTime = new Date(now);
+      checkTime.setDate(now.getDate() + day);
+      checkTime.setHours(7, 0, 0, 0);
+
+      if (checkTime > now) {
+        notifications.push({
+          identifier: `crisis-daily-${day}`,
+          content: {
+            title: "",
+            body: "",
+            data: {
+              type: "crisis-daily-trigger",
+              userId: userId,
+              day: day,
+              silent: true,
+            },
+            android: {
+              channelId: "background-tasks",
+              visibility: Notifications.AndroidNotificationVisibility.SECRET,
+            },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: checkTime,
+          },
+        });
+      }
+    }
+
+    if (notifications.length > 0) {
+      await Promise.all(
+        notifications.map((notification) =>
+          Notifications.scheduleNotificationAsync(notification)
+        )
+      );
+
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error("Error scheduling daily crisis risk checks:", error);
+    return false;
+  }
+}
+
+// Send daily risk assessment
+export async function sendDailyRiskAssessment(userId: string) {
+  try {
+    // Check if assessment already sent
+    const today = new Date().toDateString();
+    const existingNotifications =
+      await Notifications.getAllScheduledNotificationsAsync();
+    const todaysAssessment = existingNotifications.find(
+      (n) =>
+        n.identifier.includes("crisis-assessment") &&
+        n.identifier.includes(today.replace(/\s/g, ""))
+    );
+
+    if (todaysAssessment) {
+      console.log("Risk assessment already sent today, skipping");
+      return true;
+    }
+
+    const mlData = await collectMLData(userId, "week");
+    const prediction = predictCrisisRisk(mlData);
+
+    const mainRecommendation =
+      prediction.topFactors[0]?.recommendation ||
+      "Continue monitoring your health.";
+
+    const riskMessage = `Risk Level: ${prediction.riskLevel} (${prediction.riskScore}%)
+${mainRecommendation}
+Weather Risk: ${mlData.weatherRisk}/10`;
+
+    const notification = {
+      identifier: `crisis-assessment-${Date.now()}`,
+      content: {
+        title: `Daily Health Report - ${prediction.riskLevel} Risk`,
+        body: riskMessage,
+        data: {
+          type: "daily-risk-assessment",
+          riskLevel: prediction.riskLevel,
+          riskScore: prediction.riskScore,
+          weatherRisk: mlData.weatherRisk,
+        },
+      },
+      trigger: null,
+    };
+
+    await Notifications.scheduleNotificationAsync(notification);
+
+    console.log(`Daily risk assessment sent: ${prediction.riskLevel} risk`);
+    return true;
+  } catch (error) {
+    console.error("Error sending daily risk assessment:", error);
+    return false;
+  }
+}
+
 // Get notification times based on medication frequency
 const getNotificationTimes = (frequency: string) => {
   switch (frequency) {
@@ -344,11 +463,11 @@ export const NotificationHandlers = {
   },
   insights: {
     schedule: async (userId?: string) => {
-      console.log("Insights notifications not yet implemented");
-      return false;
+      if (!userId) return false;
+      return await scheduleCrisisRiskNotifications(userId);
     },
-    cancel: () => cancelNotifications("insights-"),
-    check: () => areNotificationsScheduled("insights-"),
+    cancel: () => cancelNotifications("crisis-"),
+    check: () => areNotificationsScheduled("crisis-"),
   },
 } as const;
 

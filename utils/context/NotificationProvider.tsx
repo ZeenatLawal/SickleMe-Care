@@ -16,6 +16,7 @@ import { AppState, AppStateStatus } from "react-native";
 import {
   NotificationHandlers,
   registerForPushNotifications,
+  sendDailyRiskAssessment,
 } from "../notifications";
 import { useAuth } from "./AuthProvider";
 
@@ -213,6 +214,14 @@ export function NotificationProvider({
 
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
+        const data = notification.request.content.data;
+
+        // Handle silent background triggers
+        if (data?.type === "crisis-daily-trigger" && userProfile?.userId) {
+          sendDailyRiskAssessment(userProfile.userId);
+          return;
+        }
+
         console.log(
           "Notification received while app is running:",
           notification
@@ -227,6 +236,15 @@ export function NotificationProvider({
 
         console.log("data", JSON.stringify(data, null, 2));
 
+        // Handle background trigger when app was closed
+        if (data?.type === "crisis-daily-trigger" && userProfile?.userId) {
+          console.log("Handling background crisis trigger on app open");
+          sendDailyRiskAssessment(userProfile.userId);
+          router.push("/(tabs)/insights");
+          return;
+        }
+
+        // Handle normal notification routing
         if (
           data?.type === "daily-checkup" ||
           data?.type === "hydration-reminder"
@@ -234,7 +252,7 @@ export function NotificationProvider({
           router.push("/(tabs)/track");
         } else if (data?.type === "medication-reminder") {
           router.push("/(tabs)/medications");
-        } else if (data?.type === "insights-reminder") {
+        } else if (data?.type === "daily-risk-assessment") {
           router.push("/(tabs)/insights");
         } else {
           router.push("/(tabs)");
@@ -249,7 +267,7 @@ export function NotificationProvider({
         responseListener.current.remove();
       }
     };
-  }, []);
+  }, [userProfile?.userId]);
 
   useEffect(() => {
     if (isAuthenticated && userProfile) {
