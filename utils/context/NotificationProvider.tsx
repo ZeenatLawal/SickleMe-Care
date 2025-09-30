@@ -253,7 +253,7 @@ export function NotificationProvider({
         responseListener.current.remove();
       }
     };
-  }, [userProfile?.userId]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && userProfile) {
